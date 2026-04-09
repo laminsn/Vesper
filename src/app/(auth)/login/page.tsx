@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -86,20 +88,30 @@ export default function LoginPage() {
         >
           Password
         </label>
-        <input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter your password"
-          className={cn(
-            "w-full rounded-lg border border-[var(--jarvis-border)] bg-[var(--jarvis-bg-tertiary)] px-4 py-2.5 text-sm text-[var(--jarvis-text-primary)] placeholder:text-[var(--jarvis-text-muted)]",
-            "outline-none transition-all duration-200",
-            "focus:border-[var(--jarvis-accent)] focus:shadow-[0_0_12px_rgba(6,214,160,0.2)]"
-          )}
-        />
+        <div className="relative">
+          <input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your password"
+            className={cn(
+              "w-full rounded-lg border border-[var(--jarvis-border)] bg-[var(--jarvis-bg-tertiary)] px-4 py-2.5 pr-11 text-sm text-[var(--jarvis-text-primary)] placeholder:text-[var(--jarvis-text-muted)]",
+              "outline-none transition-all duration-200",
+              "focus:border-[var(--jarvis-accent)] focus:shadow-[0_0_12px_rgba(6,214,160,0.2)]"
+            )}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--jarvis-text-muted)] transition-colors hover:text-[var(--jarvis-text-primary)]"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
 
       {/* Forgot password */}
