@@ -2,13 +2,24 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Plug } from "lucide-react";
-import { GlowCard } from "@/components/jarvis";
 import {
-  integrations,
+  Search,
+  Plug,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Zap,
+  Activity,
+  TestTube,
+} from "lucide-react";
+import { toast } from "sonner";
+import { GlowCard, HudFrame, CircularGauge } from "@/components/jarvis";
+import {
+  integrations as catalogIntegrations,
   integrationCategories,
   type Integration,
 } from "@/data/integrations";
+import { useIntegrations, useTestIntegration } from "@/hooks/use-integrations";
 
 /* ───── constants ───── */
 
@@ -35,13 +46,36 @@ const fadeUp = {
 
 /* ───── integration card ───── */
 
-function IntegrationCard({ integration }: { readonly integration: Integration }) {
+interface IntegrationCardProps {
+  readonly integration: Integration;
+  readonly liveStatus?: "connected" | "disconnected" | "error" | "testing";
+  readonly registryId?: string;
+}
+
+function IntegrationCard({ integration, liveStatus, registryId }: IntegrationCardProps) {
+  const testMutation = useTestIntegration();
   const firstLetter = integration.name.charAt(0).toUpperCase();
+  const isConnected = liveStatus === "connected";
+  const isTesting = testMutation.isPending;
+
+  const handleTest = () => {
+    if (!registryId) {
+      toast.info(`${integration.name} is not registered yet.`);
+      return;
+    }
+    testMutation.mutate(registryId, {
+      onSuccess: () => toast.success(`${integration.name} — connection healthy`),
+      onError: () => toast.error(`${integration.name} — connection test failed`),
+    });
+  };
 
   return (
-    <GlowCard className="p-5 space-y-4" glowColor={integration.color} hover>
+    <GlowCard
+      className="p-5 space-y-4"
+      glowColor={isConnected ? "#06d6a0" : integration.color}
+      hover
+    >
       <div className="flex items-start gap-3">
-        {/* Icon circle */}
         <div
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
           style={{ backgroundColor: integration.color }}
@@ -49,9 +83,31 @@ function IntegrationCard({ integration }: { readonly integration: Integration })
           {firstLetter}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-[var(--jarvis-text-primary)] leading-snug truncate">
-            {integration.name}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-[var(--jarvis-text-primary)] leading-snug truncate">
+              {integration.name}
+            </h3>
+            {liveStatus && (
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
+                  isConnected
+                    ? "bg-emerald-500/20 text-emerald-400"
+                    : liveStatus === "testing"
+                    ? "bg-blue-500/20 text-blue-400"
+                    : "bg-red-500/20 text-red-400"
+                }`}
+              >
+                {isConnected ? (
+                  <CheckCircle2 className="h-2.5 w-2.5" />
+                ) : liveStatus === "testing" ? (
+                  <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                ) : (
+                  <XCircle className="h-2.5 w-2.5" />
+                )}
+                {liveStatus}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-[var(--jarvis-text-muted)] mt-0.5 line-clamp-2">
             {integration.description}
           </p>
@@ -87,15 +143,34 @@ function IntegrationCard({ integration }: { readonly integration: Integration })
         )}
       </div>
 
-      {/* Connect button */}
-      <div className="flex items-center justify-end pt-1 border-t border-[var(--jarvis-border)]">
-        <button
-          disabled
-          className="flex items-center gap-1.5 rounded-md border border-[var(--jarvis-accent)] bg-transparent px-3 py-1.5 text-xs font-medium text-[var(--jarvis-accent)] opacity-60 cursor-not-allowed transition-colors"
+      {/* Action buttons */}
+      <div className="flex items-center justify-between pt-1 border-t border-[var(--jarvis-border)]">
+        {isConnected && registryId ? (
+          <button
+            onClick={handleTest}
+            disabled={isTesting}
+            className="flex items-center gap-1.5 rounded-md border border-blue-500/40 bg-transparent px-3 py-1.5 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-500/10 disabled:opacity-50"
+          >
+            {isTesting ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <TestTube className="h-3 w-3" />
+            )}
+            {isTesting ? "Testing..." : "Test"}
+          </button>
+        ) : (
+          <div />
+        )}
+        <span
+          className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium ${
+            isConnected
+              ? "border-emerald-500/40 text-emerald-400"
+              : "border-[var(--jarvis-border)] text-[var(--jarvis-text-muted)]"
+          }`}
         >
           <Plug className="h-3 w-3" />
-          Connect
-        </button>
+          {isConnected ? "Connected" : liveStatus === "testing" ? "Testing..." : "Not Connected"}
+        </span>
       </div>
     </GlowCard>
   );
@@ -106,10 +181,20 @@ function IntegrationCard({ integration }: { readonly integration: Integration })
 export default function IntegrationsPage() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const { data: registeredIntegrations = [], isLoading } = useIntegrations();
+
+  // Build a lookup from integration_key → registry record
+  const registryMap = useMemo(() => {
+    const map = new Map<string, { id: string; status: string }>();
+    for (const reg of registeredIntegrations) {
+      map.set(reg.integration_key, { id: reg.id, status: reg.status });
+    }
+    return map;
+  }, [registeredIntegrations]);
 
   const filtered = useMemo(() => {
     const lower = searchQuery.toLowerCase();
-    return integrations.filter((i) => {
+    return catalogIntegrations.filter((i) => {
       const matchesCategory = activeCategory === "all" || i.category === activeCategory;
       const matchesSearch =
         lower === "" ||
@@ -120,6 +205,9 @@ export default function IntegrationsPage() {
   }, [activeCategory, searchQuery]);
 
   const categories = [ALL_CATEGORY, ...integrationCategories];
+
+  const connectedCount = registeredIntegrations.filter((r) => r.status === "connected").length;
+  const disconnectedCount = registeredIntegrations.filter((r) => r.status !== "connected").length;
 
   return (
     <motion.div
@@ -134,8 +222,44 @@ export default function IntegrationsPage() {
           Integrations
         </h1>
         <p className="text-sm text-[var(--jarvis-text-muted)] mt-1">
-          Connect your tools and services &mdash; {integrations.length} integrations available
+          Connect your tools and services &mdash; {catalogIntegrations.length} available, {registeredIntegrations.length} registered
         </p>
+      </motion.div>
+
+      {/* Stats */}
+      <motion.div variants={fadeUp} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <HudFrame title="Registered">
+          <div className="flex items-center justify-center py-2">
+            <CircularGauge
+              value={registeredIntegrations.length}
+              max={catalogIntegrations.length}
+              label="Registered"
+              size="sm"
+            />
+          </div>
+        </HudFrame>
+        <HudFrame title="Connected" color="#06d6a0">
+          <div className="flex items-center justify-center py-2">
+            <CircularGauge
+              value={connectedCount}
+              max={registeredIntegrations.length || 1}
+              label="Connected"
+              color="#06d6a0"
+              size="sm"
+            />
+          </div>
+        </HudFrame>
+        <HudFrame title="Disconnected" color="#ef4444">
+          <div className="flex items-center justify-center py-2">
+            <CircularGauge
+              value={disconnectedCount}
+              max={registeredIntegrations.length || 1}
+              label="Disconnected"
+              color="#ef4444"
+              size="sm"
+            />
+          </div>
+        </HudFrame>
       </motion.div>
 
       {/* Search */}
@@ -151,10 +275,7 @@ export default function IntegrationsPage() {
       </motion.div>
 
       {/* Category tabs */}
-      <motion.div
-        variants={fadeUp}
-        className="flex flex-wrap gap-2"
-      >
+      <motion.div variants={fadeUp} className="flex flex-wrap gap-2">
         {categories.map((cat) => {
           const isActive = activeCategory === cat.id;
           return (
@@ -173,20 +294,35 @@ export default function IntegrationsPage() {
         })}
       </motion.div>
 
+      {/* Loading */}
+      {isLoading && (
+        <motion.div variants={fadeUp} className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--jarvis-accent)]" />
+          <span className="ml-2 text-sm text-[var(--jarvis-text-muted)]">Loading integrations...</span>
+        </motion.div>
+      )}
+
       {/* Grid */}
       <motion.div
         className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
         variants={stagger}
       >
-        {filtered.map((integration) => (
-          <motion.div key={integration.id} variants={fadeUp}>
-            <IntegrationCard integration={integration} />
-          </motion.div>
-        ))}
+        {filtered.map((integration) => {
+          const registry = registryMap.get(integration.id);
+          return (
+            <motion.div key={integration.id} variants={fadeUp}>
+              <IntegrationCard
+                integration={integration}
+                liveStatus={registry?.status as "connected" | "disconnected" | "error" | "testing" | undefined}
+                registryId={registry?.id}
+              />
+            </motion.div>
+          );
+        })}
       </motion.div>
 
       {/* Empty state */}
-      {filtered.length === 0 && (
+      {filtered.length === 0 && !isLoading && (
         <motion.div
           variants={fadeUp}
           className="flex flex-col items-center justify-center py-16 text-center"
