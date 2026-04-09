@@ -3,6 +3,16 @@
 // Ported from Dr. Claw Medical — 40+ integrations
 // ═══════════════════════════════════════════════════
 
+export type ConnectionMethod = "api" | "mcp" | "cli" | "browser" | "manual" | "oauth";
+
+export interface CredentialField {
+  readonly key: string;
+  readonly label: string;
+  readonly type: "text" | "password" | "url" | "email" | "number";
+  readonly placeholder?: string;
+  readonly required: boolean;
+}
+
 export interface Integration {
   readonly id: string;
   readonly name: string;
@@ -14,6 +24,9 @@ export interface Integration {
   readonly features: readonly string[];
   readonly apiKeyFormat?: string;
   readonly connectionUrl?: string;
+  readonly defaultMethod: ConnectionMethod;
+  readonly supportedMethods: readonly ConnectionMethod[];
+  readonly credentialFields: readonly CredentialField[];
 }
 
 export const integrationCategories = [
@@ -43,6 +56,12 @@ export const integrations: readonly Integration[] = [
     features: ["GPT-4o latest model", "Function calling", "Vision capabilities", "JSON mode", "Fine-tuning support"],
     apiKeyFormat: "sk-...",
     connectionUrl: "https://platform.openai.com",
+    defaultMethod: "api",
+    supportedMethods: ["api", "mcp", "manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", placeholder: "sk-...", required: true },
+      { key: "baseUrl", label: "Base URL", type: "url", placeholder: "https://api.openai.com", required: false },
+    ],
   },
   {
     id: "anthropic",
@@ -55,7 +74,13 @@ export const integrations: readonly Integration[] = [
     features: ["200K context window", "Advanced reasoning", "Code generation", "Document analysis", "Tool use"],
     apiKeyFormat: "sk-ant-...",
     connectionUrl: "https://console.anthropic.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", placeholder: "sk-ant-...", required: true },
+      { key: "baseUrl", label: "Base URL", type: "url", required: false },
+    ],
+    },
   {
     id: "google-gemini",
     name: "Google Gemini",
@@ -67,7 +92,13 @@ export const integrations: readonly Integration[] = [
     features: ["Multimodal input", "Long context", "Grounding with Search", "Code execution", "Structured output"],
     apiKeyFormat: "AIza...",
     connectionUrl: "https://ai.google.dev",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", placeholder: "AIza...", required: true },
+      { key: "baseUrl", label: "Base URL", type: "url", required: false },
+    ],
+    },
   {
     id: "minimax",
     name: "MiniMax",
@@ -79,7 +110,12 @@ export const integrations: readonly Integration[] = [
     features: ["Text generation", "Voice synthesis", "Long context support", "Multilingual", "Cost-effective"],
     apiKeyFormat: "mm-...",
     connectionUrl: "https://www.minimaxi.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+    ],
+    },
   {
     id: "kimi",
     name: "Kimi (Moonshot AI)",
@@ -91,7 +127,12 @@ export const integrations: readonly Integration[] = [
     features: ["Ultra-long context (200K+)", "Document understanding", "Web browsing", "Multilingual support", "Reasoning"],
     apiKeyFormat: "kimi-...",
     connectionUrl: "https://www.moonshot.cn",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+    ],
+    },
   {
     id: "mistral",
     name: "Mistral AI",
@@ -103,7 +144,12 @@ export const integrations: readonly Integration[] = [
     features: ["Fast inference", "Code generation", "Multilingual", "Function calling", "JSON output"],
     apiKeyFormat: "mist-...",
     connectionUrl: "https://console.mistral.ai",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+    ],
+    },
   {
     id: "cohere",
     name: "Cohere",
@@ -115,7 +161,12 @@ export const integrations: readonly Integration[] = [
     features: ["RAG optimized", "Reranking", "Embeddings", "Multilingual", "Enterprise security"],
     apiKeyFormat: "co-...",
     connectionUrl: "https://dashboard.cohere.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", placeholder: "co-...", required: true },
+    ],
+    },
 
   // ── Voice AI ─────────────────────────────────────
   {
@@ -129,7 +180,12 @@ export const integrations: readonly Integration[] = [
     features: ["Voice cloning", "29+ languages", "Emotion control", "Real-time streaming", "Custom voices"],
     apiKeyFormat: "el-...",
     connectionUrl: "https://elevenlabs.io",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", placeholder: "xi-...", required: true },
+    ],
+    },
   {
     id: "deepgram",
     name: "Deepgram",
@@ -141,7 +197,12 @@ export const integrations: readonly Integration[] = [
     features: ["Real-time transcription", "Medical vocabulary", "Speaker diarization", "Sentiment analysis", "Custom models"],
     apiKeyFormat: "dg-...",
     connectionUrl: "https://deepgram.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+    ],
+    },
   {
     id: "vapi",
     name: "VAPI",
@@ -153,7 +214,12 @@ export const integrations: readonly Integration[] = [
     features: ["Phone call agents", "Sub-second latency", "Call transfer", "Voicemail detection", "Call recording"],
     apiKeyFormat: "vapi-...",
     connectionUrl: "https://vapi.ai",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+    ],
+    },
   {
     id: "wispr-flow",
     name: "Wispr Flow",
@@ -165,7 +231,12 @@ export const integrations: readonly Integration[] = [
     features: ["Voice-to-text dictation", "Hands-free agent commands", "Clinical note dictation", "Context-aware corrections", "Multi-language support", "macOS & iOS native"],
     apiKeyFormat: "wispr-...",
     connectionUrl: "https://www.wispr.ai",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+    ],
+    },
 
   // ── Cloud & Infrastructure ───────────────────────
   {
@@ -179,7 +250,14 @@ export const integrations: readonly Integration[] = [
     features: ["Comprehend Medical", "Transcribe Medical", "S3 storage", "HIPAA eligible", "HealthLake"],
     apiKeyFormat: "AKIA...",
     connectionUrl: "https://aws.amazon.com/health",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","cli","manual"],
+    credentialFields: [
+      { key: "accessKeyId", label: "Access Key ID", type: "text", required: true },
+      { key: "secretAccessKey", label: "Secret Access Key", type: "password", required: true },
+      { key: "region", label: "Region", type: "text", placeholder: "us-east-1", required: true },
+    ],
+    },
   {
     id: "supabase",
     name: "Supabase",
@@ -191,7 +269,14 @@ export const integrations: readonly Integration[] = [
     features: ["PostgreSQL database", "Real-time subscriptions", "Row-level security", "Edge functions", "File storage"],
     apiKeyFormat: "eyJ...",
     connectionUrl: "https://supabase.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp"],
+    credentialFields: [
+      { key: "projectUrl", label: "Project URL", type: "url", placeholder: "https://xxx.supabase.co", required: true },
+      { key: "anonKey", label: "Anon Key", type: "password", required: true },
+      { key: "serviceRoleKey", label: "Service Role Key", type: "password", required: false },
+    ],
+    },
 
   // ── Productivity ─────────────────────────────────
   {
@@ -205,7 +290,12 @@ export const integrations: readonly Integration[] = [
     features: ["Knowledge bases", "Clinical SOPs", "Protocol docs", "Team wikis", "Database sync"],
     apiKeyFormat: "ntn_...",
     connectionUrl: "https://www.notion.so",
-  },
+    defaultMethod: "mcp",
+    supportedMethods: ["mcp","api","browser"],
+    credentialFields: [
+      { key: "integrationToken", label: "Integration Token", type: "password", placeholder: "secret_...", required: true },
+    ],
+    },
   {
     id: "airtable",
     name: "Airtable",
@@ -217,7 +307,13 @@ export const integrations: readonly Integration[] = [
     features: ["Patient CRM", "Referral tracking", "Workflow automation", "Form builder", "Reporting"],
     apiKeyFormat: "pat...",
     connectionUrl: "https://airtable.com",
-  },
+    defaultMethod: "mcp",
+    supportedMethods: ["mcp","api","browser"],
+    credentialFields: [
+      { key: "personalAccessToken", label: "Personal Access Token", type: "password", placeholder: "pat...", required: true },
+      { key: "baseId", label: "Base ID", type: "text", placeholder: "appXXXXXXXX", required: false },
+    ],
+    },
   {
     id: "zapier",
     name: "Zapier",
@@ -229,7 +325,12 @@ export const integrations: readonly Integration[] = [
     features: ["5000+ app connectors", "Multi-step workflows", "Conditional logic", "Webhooks", "Scheduled triggers"],
     apiKeyFormat: "zap-...",
     connectionUrl: "https://zapier.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","browser","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+    ],
+    },
   {
     id: "n8n",
     name: "n8n",
@@ -241,7 +342,13 @@ export const integrations: readonly Integration[] = [
     features: ["Self-hosted for PHI control", "400+ integrations", "HIPAA-compliant workflows", "Conditional branching", "Webhook triggers", "EHR data pipelines", "Custom code nodes"],
     apiKeyFormat: "n8n-...",
     connectionUrl: "https://n8n.io",
-  },
+    defaultMethod: "mcp",
+    supportedMethods: ["mcp","api","browser"],
+    credentialFields: [
+      { key: "apiUrl", label: "API URL", type: "url", placeholder: "https://your-instance.app.n8n.cloud", required: true },
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+    ],
+    },
   {
     id: "google-mail",
     name: "Google Mail (Gmail)",
@@ -253,7 +360,13 @@ export const integrations: readonly Integration[] = [
     features: ["Send & receive email", "Email parsing & triage", "Auto-responses", "Label management", "Contact sync"],
     apiKeyFormat: "goog-...",
     connectionUrl: "https://workspace.google.com",
-  },
+    defaultMethod: "mcp",
+    supportedMethods: ["mcp","oauth","browser"],
+    credentialFields: [
+      { key: "email", label: "Email Account", type: "email", required: true },
+      { key: "oauthToken", label: "OAuth Token", type: "password", required: false },
+    ],
+    },
   {
     id: "google-drive",
     name: "Google Drive",
@@ -265,7 +378,12 @@ export const integrations: readonly Integration[] = [
     features: ["File storage & retrieval", "Document sharing", "Folder management", "Permission control", "Search & index"],
     apiKeyFormat: "goog-...",
     connectionUrl: "https://workspace.google.com",
-  },
+    defaultMethod: "mcp",
+    supportedMethods: ["mcp","oauth","browser"],
+    credentialFields: [
+      { key: "serviceAccountJson", label: "Service Account JSON", type: "password", required: false },
+    ],
+    },
   {
     id: "google-docs",
     name: "Google Docs",
@@ -277,7 +395,12 @@ export const integrations: readonly Integration[] = [
     features: ["Document creation", "Collaborative editing", "Template management", "Export to PDF/Word", "Comment & suggest"],
     apiKeyFormat: "goog-...",
     connectionUrl: "https://workspace.google.com",
-  },
+    defaultMethod: "mcp",
+    supportedMethods: ["mcp","oauth","browser"],
+    credentialFields: [
+      { key: "serviceAccountJson", label: "Service Account JSON", type: "password", required: false },
+    ],
+    },
   {
     id: "google-sheets",
     name: "Google Sheets",
@@ -289,7 +412,12 @@ export const integrations: readonly Integration[] = [
     features: ["Data entry & analysis", "Formulas & pivot tables", "Chart generation", "Import/export CSV", "Data sync"],
     apiKeyFormat: "goog-...",
     connectionUrl: "https://workspace.google.com",
-  },
+    defaultMethod: "mcp",
+    supportedMethods: ["mcp","oauth","browser"],
+    credentialFields: [
+      { key: "serviceAccountJson", label: "Service Account JSON", type: "password", required: false },
+    ],
+    },
   {
     id: "google-slides",
     name: "Google Slides",
@@ -301,7 +429,12 @@ export const integrations: readonly Integration[] = [
     features: ["Presentation builder", "Template library", "Speaker notes", "Collaborative editing", "Export to PDF/PPT"],
     apiKeyFormat: "goog-...",
     connectionUrl: "https://workspace.google.com",
-  },
+    defaultMethod: "mcp",
+    supportedMethods: ["mcp","oauth","browser"],
+    credentialFields: [
+      { key: "serviceAccountJson", label: "Service Account JSON", type: "password", required: false },
+    ],
+    },
 
   // ── CRM ──────────────────────────────────────────
   {
@@ -315,7 +448,13 @@ export const integrations: readonly Integration[] = [
     features: ["Contact management", "Pipeline & deals", "Marketing automation", "Appointment booking", "SMS & email campaigns"],
     apiKeyFormat: "ghl-...",
     connectionUrl: "https://www.gohighlevel.com",
-  },
+    defaultMethod: "mcp",
+    supportedMethods: ["mcp","api","browser"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+      { key: "locationId", label: "Location ID", type: "text", required: false },
+    ],
+    },
   {
     id: "hubspot",
     name: "HubSpot",
@@ -327,7 +466,13 @@ export const integrations: readonly Integration[] = [
     features: ["Contact & deal management", "Marketing automation", "Sales pipeline", "Ticketing & support", "Reporting dashboards"],
     apiKeyFormat: "pat-...",
     connectionUrl: "https://www.hubspot.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","browser","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+      { key: "instanceUrl", label: "Instance URL", type: "url", required: false },
+    ],
+    },
   {
     id: "salesforce",
     name: "Salesforce",
@@ -339,7 +484,14 @@ export const integrations: readonly Integration[] = [
     features: ["Lead & opportunity management", "Einstein AI insights", "Health Cloud for healthcare", "Custom objects & workflows", "AppExchange ecosystem"],
     apiKeyFormat: "sf-...",
     connectionUrl: "https://www.salesforce.com",
-  },
+    defaultMethod: "oauth",
+    supportedMethods: ["oauth","api","browser"],
+    credentialFields: [
+      { key: "clientId", label: "Client ID", type: "text", required: true },
+      { key: "clientSecret", label: "Client Secret", type: "password", required: true },
+      { key: "instanceUrl", label: "Instance URL", type: "url", placeholder: "https://yourorg.my.salesforce.com", required: true },
+    ],
+    },
   {
     id: "zoho-crm",
     name: "Zoho CRM",
@@ -351,7 +503,13 @@ export const integrations: readonly Integration[] = [
     features: ["Lead & deal tracking", "Workflow automation", "AI assistant (Zia)", "Omnichannel communication", "Custom modules"],
     apiKeyFormat: "zoho-...",
     connectionUrl: "https://www.zoho.com/crm",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","browser","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+      { key: "instanceUrl", label: "Instance URL", type: "url", required: false },
+    ],
+    },
   {
     id: "pipedrive",
     name: "Pipedrive",
@@ -363,7 +521,13 @@ export const integrations: readonly Integration[] = [
     features: ["Visual sales pipeline", "Activity-based selling", "Email integration", "Revenue forecasting", "Automation workflows"],
     apiKeyFormat: "pipe-...",
     connectionUrl: "https://www.pipedrive.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","browser","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+      { key: "instanceUrl", label: "Instance URL", type: "url", required: false },
+    ],
+    },
 
   // ── Communication ────────────────────────────────
   {
@@ -377,7 +541,13 @@ export const integrations: readonly Integration[] = [
     features: ["Agent notifications", "Team alerts", "Channel updates", "Interactive messages", "Slash commands"],
     apiKeyFormat: "xoxb-...",
     connectionUrl: "https://api.slack.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp","browser"],
+    credentialFields: [
+      { key: "botToken", label: "Bot Token", type: "password", placeholder: "xoxb-...", required: true },
+      { key: "signingSecret", label: "Signing Secret", type: "password", required: false },
+    ],
+    },
   {
     id: "twilio",
     name: "Twilio",
@@ -389,7 +559,13 @@ export const integrations: readonly Integration[] = [
     features: ["SMS notifications", "Voice calls", "WhatsApp", "Patient messaging", "Two-way communication"],
     apiKeyFormat: "twi-...",
     connectionUrl: "https://www.twilio.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp"],
+    credentialFields: [
+      { key: "accountSid", label: "Account SID", type: "text", required: true },
+      { key: "authToken", label: "Auth Token", type: "password", required: true },
+    ],
+    },
   {
     id: "sendgrid",
     name: "SendGrid",
@@ -401,7 +577,12 @@ export const integrations: readonly Integration[] = [
     features: ["Transactional email", "Marketing campaigns", "Email templates", "Analytics", "Deliverability tools"],
     apiKeyFormat: "SG...",
     connectionUrl: "https://sendgrid.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", placeholder: "SG...", required: true },
+    ],
+    },
 
   // ── EHR / EMR ────────────────────────────────────
   {
@@ -415,7 +596,14 @@ export const integrations: readonly Integration[] = [
     features: ["FHIR R4 API", "Patient record access", "Appointment scheduling", "Clinical decision support", "MyChart integration"],
     apiKeyFormat: "epic-...",
     connectionUrl: "https://www.epic.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","browser","manual"],
+    credentialFields: [
+      { key: "clientId", label: "Client ID", type: "text", required: true },
+      { key: "clientSecret", label: "Client Secret", type: "password", required: true },
+      { key: "fhirBaseUrl", label: "FHIR Base URL", type: "url", required: true },
+    ],
+    },
   {
     id: "cerner",
     name: "Oracle Cerner",
@@ -427,7 +615,14 @@ export const integrations: readonly Integration[] = [
     features: ["FHIR API access", "Clinical workflows", "Revenue cycle management", "Population health", "Interoperability"],
     apiKeyFormat: "cerner-...",
     connectionUrl: "https://www.oracle.com/health",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","browser","manual"],
+    credentialFields: [
+      { key: "clientId", label: "Client ID", type: "text", required: true },
+      { key: "clientSecret", label: "Client Secret", type: "password", required: true },
+      { key: "fhirBaseUrl", label: "FHIR Base URL", type: "url", required: true },
+    ],
+    },
   {
     id: "allscripts",
     name: "Allscripts",
@@ -439,7 +634,13 @@ export const integrations: readonly Integration[] = [
     features: ["EHR integration", "E-prescribing", "Patient portal", "Practice management", "Clinical analytics"],
     apiKeyFormat: "asc-...",
     connectionUrl: "https://www.veradigm.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","browser","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+      { key: "practiceId", label: "Practice ID", type: "text", required: true },
+    ],
+    },
   {
     id: "nuance",
     name: "Nuance / DAX",
@@ -451,7 +652,13 @@ export const integrations: readonly Integration[] = [
     features: ["Clinical documentation (DAX)", "Medical speech recognition", "Ambient listening", "Radiology AI", "CDI assistance"],
     apiKeyFormat: "nuance-...",
     connectionUrl: "https://www.nuance.com/healthcare",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","browser","manual"],
+    credentialFields: [
+      { key: "clientId", label: "Client ID", type: "text", required: true },
+      { key: "clientSecret", label: "Client Secret", type: "password", required: true },
+    ],
+    },
 
   // ── Video & Meetings ─────────────────────────────
   {
@@ -465,7 +672,13 @@ export const integrations: readonly Integration[] = [
     features: ["Telehealth video visits", "Meeting scheduling", "Recording & transcription", "Waiting rooms", "HIPAA-eligible plans"],
     apiKeyFormat: "zoom-...",
     connectionUrl: "https://marketplace.zoom.us",
-  },
+    defaultMethod: "oauth",
+    supportedMethods: ["oauth","api","browser"],
+    credentialFields: [
+      { key: "clientId", label: "Client ID", type: "text", required: true },
+      { key: "clientSecret", label: "Client Secret", type: "password", required: true },
+    ],
+    },
   {
     id: "google-meet",
     name: "Google Meet",
@@ -477,7 +690,12 @@ export const integrations: readonly Integration[] = [
     features: ["HD video meetings", "Calendar integration", "Screen sharing", "Live captions", "Recording"],
     apiKeyFormat: "goog-...",
     connectionUrl: "https://workspace.google.com",
-  },
+    defaultMethod: "oauth",
+    supportedMethods: ["oauth","browser"],
+    credentialFields: [
+      { key: "oauthToken", label: "OAuth Token", type: "password", required: false },
+    ],
+    },
 
   // ── Messaging Platforms ──────────────────────────
   {
@@ -491,7 +709,13 @@ export const integrations: readonly Integration[] = [
     features: ["Talk to agents from your phone", "Outbound messages & notifications", "BotFather bot creation", "Inline keyboards & quick replies", "Group & channel support", "File & media sharing", "Webhook-driven real-time responses"],
     apiKeyFormat: "123456:ABC-DEF...",
     connectionUrl: "https://core.telegram.org/bots",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp","manual"],
+    credentialFields: [
+      { key: "botToken", label: "Bot Token", type: "password", required: true },
+      { key: "chatId", label: "Chat ID", type: "text", required: false },
+    ],
+    },
   {
     id: "whatsapp",
     name: "WhatsApp Business",
@@ -503,7 +727,13 @@ export const integrations: readonly Integration[] = [
     features: ["Talk to agents from your phone", "Outbound appointment reminders", "Two-way patient conversations", "Template messages (pre-approved)", "Media & document sharing", "End-to-end encryption", "QR code pairing for WhatsApp Web"],
     apiKeyFormat: "EAAx...",
     connectionUrl: "https://business.whatsapp.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","browser","manual"],
+    credentialFields: [
+      { key: "phoneNumberId", label: "Phone Number ID", type: "text", required: true },
+      { key: "accessToken", label: "Access Token", type: "password", required: true },
+    ],
+    },
   {
     id: "discord",
     name: "Discord",
@@ -515,7 +745,13 @@ export const integrations: readonly Integration[] = [
     features: ["Bot messaging", "Server management", "Slash commands", "Embed messages", "Voice channel support"],
     apiKeyFormat: "disc-...",
     connectionUrl: "https://discord.com/developers",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp","manual"],
+    credentialFields: [
+      { key: "botToken", label: "Bot Token", type: "password", required: true },
+      { key: "serverId", label: "Server ID", type: "text", required: false },
+    ],
+    },
   {
     id: "slack-v2",
     name: "Slack (Messaging)",
@@ -527,7 +763,12 @@ export const integrations: readonly Integration[] = [
     features: ["Channel messaging", "Direct messages", "Slash commands", "Interactive blocks", "File sharing"],
     apiKeyFormat: "xoxb-...",
     connectionUrl: "https://api.slack.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","mcp","browser"],
+    credentialFields: [
+      { key: "botToken", label: "Bot Token", type: "password", placeholder: "xoxb-...", required: true },
+    ],
+    },
 
   // ── Project Management ───────────────────────────
   {
@@ -540,7 +781,13 @@ export const integrations: readonly Integration[] = [
     color: "#0079bf",
     features: ["Board sync", "Card creation from tasks", "Label mapping", "Due date sync", "Checklist sync", "Webhook notifications"],
     connectionUrl: "https://trello.com",
-  },
+    defaultMethod: "mcp",
+    supportedMethods: ["mcp","api","browser"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+      { key: "token", label: "Token", type: "password", required: true },
+    ],
+    },
   {
     id: "asana",
     name: "Asana",
@@ -551,7 +798,12 @@ export const integrations: readonly Integration[] = [
     color: "#f06a6a",
     features: ["Project sync", "Task assignment", "Timeline view", "Custom fields", "Portfolio tracking", "Status updates"],
     connectionUrl: "https://asana.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","browser","manual"],
+    credentialFields: [
+      { key: "accessToken", label: "Personal Access Token", type: "password", required: true },
+    ],
+    },
   {
     id: "monday",
     name: "Monday.com",
@@ -562,7 +814,12 @@ export const integrations: readonly Integration[] = [
     color: "#ff3d57",
     features: ["Board integration", "Item creation", "Status columns", "Timeline sync", "Automations", "Dashboards"],
     connectionUrl: "https://monday.com",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","browser","manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", required: true },
+    ],
+    },
   {
     id: "jira",
     name: "Jira",
@@ -573,7 +830,14 @@ export const integrations: readonly Integration[] = [
     color: "#0052cc",
     features: ["Issue sync", "Sprint planning", "Board integration", "Custom workflows", "Epics & stories", "JQL queries"],
     connectionUrl: "https://www.atlassian.com/software/jira",
-  },
+    defaultMethod: "api",
+    supportedMethods: ["api","browser","manual"],
+    credentialFields: [
+      { key: "email", label: "Email", type: "email", required: true },
+      { key: "apiToken", label: "API Token", type: "password", required: true },
+      { key: "domain", label: "Domain", type: "text", placeholder: "yourcompany.atlassian.net", required: true },
+    ],
+    },
 ] as const;
 
 // ── Utility functions ──────────────────────────────

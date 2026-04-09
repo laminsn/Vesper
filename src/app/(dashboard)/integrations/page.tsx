@@ -20,6 +20,8 @@ import {
   type Integration,
 } from "@/data/integrations";
 import { useIntegrations, useTestIntegration } from "@/hooks/use-integrations";
+import { ConnectionConfigDialog } from "@/components/integrations/connection-config-dialog";
+import type { IntegrationRecord } from "@/types";
 
 /* ───── constants ───── */
 
@@ -46,133 +48,156 @@ const fadeUp = {
 
 /* ───── integration card ───── */
 
+const METHOD_BADGE_COLORS: Record<string, string> = {
+  api: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  mcp: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  cli: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  browser: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+  manual: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+  oauth: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+};
+
 interface IntegrationCardProps {
   readonly integration: Integration;
   readonly liveStatus?: "connected" | "disconnected" | "error" | "testing";
-  readonly registryId?: string;
+  readonly registryRecord?: IntegrationRecord;
 }
 
-function IntegrationCard({ integration, liveStatus, registryId }: IntegrationCardProps) {
+function IntegrationCard({ integration, liveStatus, registryRecord }: IntegrationCardProps) {
+  const [dialogOpen, setDialogOpen] = useState(false);
   const testMutation = useTestIntegration();
   const firstLetter = integration.name.charAt(0).toUpperCase();
   const isConnected = liveStatus === "connected";
   const isTesting = testMutation.isPending;
+  const activeMethod = (registryRecord?.config as Record<string, unknown>)?.connectionMethod as string ?? integration.defaultMethod;
 
   const handleTest = () => {
-    if (!registryId) {
-      toast.info(`${integration.name} is not registered yet.`);
-      return;
-    }
-    testMutation.mutate(registryId, {
+    if (!registryRecord) return;
+    testMutation.mutate(registryRecord.id, {
       onSuccess: () => toast.success(`${integration.name} — connection healthy`),
       onError: () => toast.error(`${integration.name} — connection test failed`),
     });
   };
 
   return (
-    <GlowCard
-      className="p-5 space-y-4"
-      glowColor={isConnected ? "#06d6a0" : integration.color}
-      hover
-    >
-      <div className="flex items-start gap-3">
-        <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-          style={{ backgroundColor: integration.color }}
-        >
-          {firstLetter}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-[var(--jarvis-text-primary)] leading-snug truncate">
-              {integration.name}
-            </h3>
-            {liveStatus && (
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
-                  isConnected
-                    ? "bg-emerald-500/20 text-emerald-400"
-                    : liveStatus === "testing"
-                    ? "bg-blue-500/20 text-blue-400"
-                    : "bg-red-500/20 text-red-400"
-                }`}
-              >
-                {isConnected ? (
-                  <CheckCircle2 className="h-2.5 w-2.5" />
-                ) : liveStatus === "testing" ? (
-                  <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                ) : (
-                  <XCircle className="h-2.5 w-2.5" />
-                )}
-                {liveStatus}
-              </span>
-            )}
+    <>
+      <GlowCard
+        className="p-5 space-y-4"
+        glowColor={isConnected ? "#06d6a0" : integration.color}
+        hover
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+            style={{ backgroundColor: integration.color }}
+          >
+            {firstLetter}
           </div>
-          <p className="text-xs text-[var(--jarvis-text-muted)] mt-0.5 line-clamp-2">
-            {integration.description}
-          </p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-[var(--jarvis-text-primary)] leading-snug truncate">
+                {integration.name}
+              </h3>
+              {liveStatus && (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
+                    isConnected
+                      ? "bg-emerald-500/20 text-emerald-400"
+                      : liveStatus === "testing"
+                      ? "bg-blue-500/20 text-blue-400"
+                      : "bg-red-500/20 text-red-400"
+                  }`}
+                >
+                  {isConnected ? (
+                    <CheckCircle2 className="h-2.5 w-2.5" />
+                  ) : liveStatus === "testing" ? (
+                    <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                  ) : (
+                    <XCircle className="h-2.5 w-2.5" />
+                  )}
+                  {liveStatus}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-[var(--jarvis-text-muted)] mt-0.5 line-clamp-2">
+              {integration.description}
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Badges */}
-      <div className="flex flex-wrap gap-2">
-        <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium bg-[var(--jarvis-bg-tertiary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-secondary)]">
-          {integrationCategories.find((c) => c.id === integration.category)?.name ?? integration.category}
-        </span>
-        <span
-          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize ${TIER_COLORS[integration.tier] ?? ""}`}
-        >
-          {integration.tier}
-        </span>
-      </div>
-
-      {/* Features (max 3) */}
-      <div className="flex flex-wrap gap-1.5">
-        {integration.features.slice(0, 3).map((f) => (
+        {/* Badges */}
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium bg-[var(--jarvis-bg-tertiary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-secondary)]">
+            {integrationCategories.find((c) => c.id === integration.category)?.name ?? integration.category}
+          </span>
           <span
-            key={f}
-            className="rounded bg-[var(--jarvis-bg-tertiary)] px-1.5 py-0.5 text-[10px] text-[var(--jarvis-text-muted)]"
+            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize ${TIER_COLORS[integration.tier] ?? ""}`}
           >
-            {f}
+            {integration.tier}
           </span>
-        ))}
-        {integration.features.length > 3 && (
-          <span className="rounded bg-[var(--jarvis-bg-tertiary)] px-1.5 py-0.5 text-[10px] text-[var(--jarvis-text-muted)]">
-            +{integration.features.length - 3} more
+          <span
+            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase ${METHOD_BADGE_COLORS[activeMethod] ?? ""}`}
+          >
+            {activeMethod}
           </span>
-        )}
-      </div>
+        </div>
 
-      {/* Action buttons */}
-      <div className="flex items-center justify-between pt-1 border-t border-[var(--jarvis-border)]">
-        {isConnected && registryId ? (
+        {/* Features (max 3) */}
+        <div className="flex flex-wrap gap-1.5">
+          {integration.features.slice(0, 3).map((f) => (
+            <span
+              key={f}
+              className="rounded bg-[var(--jarvis-bg-tertiary)] px-1.5 py-0.5 text-[10px] text-[var(--jarvis-text-muted)]"
+            >
+              {f}
+            </span>
+          ))}
+          {integration.features.length > 3 && (
+            <span className="rounded bg-[var(--jarvis-bg-tertiary)] px-1.5 py-0.5 text-[10px] text-[var(--jarvis-text-muted)]">
+              +{integration.features.length - 3} more
+            </span>
+          )}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center justify-between pt-1 border-t border-[var(--jarvis-border)]">
+          {isConnected && registryRecord ? (
+            <button
+              onClick={handleTest}
+              disabled={isTesting}
+              className="flex items-center gap-1.5 rounded-md border border-blue-500/40 bg-transparent px-3 py-1.5 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-500/10 disabled:opacity-50"
+            >
+              {isTesting ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <TestTube className="h-3 w-3" />
+              )}
+              {isTesting ? "Testing..." : "Test"}
+            </button>
+          ) : (
+            <div />
+          )}
           <button
-            onClick={handleTest}
-            disabled={isTesting}
-            className="flex items-center gap-1.5 rounded-md border border-blue-500/40 bg-transparent px-3 py-1.5 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-500/10 disabled:opacity-50"
+            onClick={() => setDialogOpen(true)}
+            className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+              isConnected
+                ? "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
+                : "border-[var(--jarvis-accent)] text-[var(--jarvis-accent)] hover:bg-[var(--jarvis-accent)]/10"
+            }`}
           >
-            {isTesting ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <TestTube className="h-3 w-3" />
-            )}
-            {isTesting ? "Testing..." : "Test"}
+            <Plug className="h-3 w-3" />
+            {isConnected ? "Configure" : "Connect"}
           </button>
-        ) : (
-          <div />
-        )}
-        <span
-          className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium ${
-            isConnected
-              ? "border-emerald-500/40 text-emerald-400"
-              : "border-[var(--jarvis-border)] text-[var(--jarvis-text-muted)]"
-          }`}
-        >
-          <Plug className="h-3 w-3" />
-          {isConnected ? "Connected" : liveStatus === "testing" ? "Testing..." : "Not Connected"}
-        </span>
-      </div>
-    </GlowCard>
+        </div>
+      </GlowCard>
+
+      <ConnectionConfigDialog
+        integration={integration}
+        registryRecord={registryRecord}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
+    </>
   );
 }
 
@@ -183,11 +208,11 @@ export default function IntegrationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: registeredIntegrations = [], isLoading } = useIntegrations();
 
-  // Build a lookup from integration_key → registry record
+  // Build a lookup from integration_key → full registry record
   const registryMap = useMemo(() => {
-    const map = new Map<string, { id: string; status: string }>();
+    const map = new Map<string, IntegrationRecord>();
     for (const reg of registeredIntegrations) {
-      map.set(reg.integration_key, { id: reg.id, status: reg.status });
+      map.set(reg.integration_key, reg);
     }
     return map;
   }, [registeredIntegrations]);
@@ -314,7 +339,7 @@ export default function IntegrationsPage() {
               <IntegrationCard
                 integration={integration}
                 liveStatus={registry?.status as "connected" | "disconnected" | "error" | "testing" | undefined}
-                registryId={registry?.id}
+                registryRecord={registry}
               />
             </motion.div>
           );
