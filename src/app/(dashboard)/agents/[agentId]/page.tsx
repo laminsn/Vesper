@@ -6,6 +6,10 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Send, ListTodo, MessageSquare, Sparkles } from "lucide-react";
 import { useAgents, useAgent } from "@/hooks/use-agents";
 import { useDepartments } from "@/hooks/use-departments";
+import { useDirectives } from "@/hooks/use-directives";
+import { useTasks } from "@/hooks/use-tasks";
+import { useAgentComms } from "@/hooks/use-comms";
+import { useEvolutionProposals } from "@/hooks/use-evolution";
 import {
   StatusIndicator,
   DepartmentBadge,
@@ -28,6 +32,28 @@ export default function AgentDetailPage() {
   const { data: agent, isLoading: agentLoading } = useAgent(agentId);
   const { data: allAgents = [] } = useAgents();
   const { data: departments = [] } = useDepartments();
+
+  const { data: allDirectives = [] } = useDirectives();
+  const { data: allTasks = [] } = useTasks();
+  const { data: allComms = [] } = useAgentComms();
+  const { data: allEvolution = [] } = useEvolutionProposals();
+
+  const agentDirectives = useMemo(
+    () => (agent ? allDirectives.filter((d) => d.target_agent_id === agent.id) : []),
+    [agent, allDirectives]
+  );
+  const agentTasks = useMemo(
+    () => (agent ? allTasks.filter((t) => t.assigned_agent_id === agent.id) : []),
+    [agent, allTasks]
+  );
+  const agentComms = useMemo(
+    () => (agent ? allComms.filter((c) => c.from_agent_id === agent.id || c.to_agent_id === agent.id) : []),
+    [agent, allComms]
+  );
+  const agentEvolution = useMemo(
+    () => (agent ? allEvolution.filter((e) => e.agent_id === agent.id) : []),
+    [agent, allEvolution]
+  );
 
   const directReports = useMemo(
     () => (agent ? allAgents.filter((a) => a.parent_agent_id === agent.slug) : []),
@@ -198,41 +224,107 @@ export default function AgentDetailPage() {
           <TabsContent value="directives" className="mt-4">
             <GlowCard className="p-5" hover={false}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="heading-mono">Directives</h3>
+                <h3 className="heading-mono">Directives ({agentDirectives.length})</h3>
                 <button
                   type="button"
-                  disabled
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border border-[var(--jarvis-border)] text-[var(--jarvis-text-muted)] opacity-50 cursor-not-allowed"
+                  onClick={() => router.push("/command-station")}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border border-[var(--jarvis-accent)] text-[var(--jarvis-accent)] hover:bg-[var(--jarvis-accent)]/10 transition-colors"
                 >
                   <Send className="h-3.5 w-3.5" />
                   Issue Directive
                 </button>
               </div>
-              <EmptyState message="No directives yet" />
+              {agentDirectives.length === 0 ? (
+                <EmptyState message="No directives yet — use Command Station to issue one" />
+              ) : (
+                <div className="space-y-2">
+                  {agentDirectives.map((d) => (
+                    <div key={d.id} className="flex items-start gap-3 rounded-lg bg-[var(--jarvis-bg-tertiary)] px-4 py-3">
+                      <div className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: d.status === "completed" ? "var(--jarvis-success)" : d.status === "pending" ? "var(--jarvis-warning)" : "var(--jarvis-accent-2)" }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-[var(--jarvis-text-primary)]">{d.instruction}</p>
+                        <p className="text-[10px] text-[var(--jarvis-text-muted)] mt-1">
+                          {d.status} &middot; {d.priority} &middot; {formatRelativeTime(d.created_at)}
+                        </p>
+                        {d.response && (
+                          <p className="text-xs text-[var(--jarvis-accent)] mt-2 border-l-2 border-[var(--jarvis-accent)]/30 pl-2">
+                            {d.response}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </GlowCard>
           </TabsContent>
 
           {/* Tasks Tab */}
           <TabsContent value="tasks" className="mt-4">
             <GlowCard className="p-5" hover={false}>
-              <h3 className="heading-mono mb-4">Tasks</h3>
-              <EmptyState message="No tasks assigned" />
+              <h3 className="heading-mono mb-4">Tasks ({agentTasks.length})</h3>
+              {agentTasks.length === 0 ? (
+                <EmptyState message="No tasks assigned to this agent" />
+              ) : (
+                <div className="space-y-2">
+                  {agentTasks.map((t) => (
+                    <div key={t.id} className="flex items-center gap-3 rounded-lg bg-[var(--jarvis-bg-tertiary)] px-4 py-3">
+                      <div className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: t.status === "done" ? "var(--jarvis-success)" : t.status === "in_progress" ? "var(--jarvis-accent-2)" : "var(--jarvis-warning)" }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-[var(--jarvis-text-primary)]">{t.title}</p>
+                        <p className="text-[10px] text-[var(--jarvis-text-muted)]">
+                          {t.status} &middot; {t.priority}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </GlowCard>
           </TabsContent>
 
           {/* Communications Tab */}
           <TabsContent value="communications" className="mt-4">
             <GlowCard className="p-5" hover={false}>
-              <h3 className="heading-mono mb-4">Communications</h3>
-              <EmptyState message="No communications" />
+              <h3 className="heading-mono mb-4">Communications ({agentComms.length})</h3>
+              {agentComms.length === 0 ? (
+                <EmptyState message="No communications for this agent" />
+              ) : (
+                <div className="space-y-2">
+                  {agentComms.map((c) => (
+                    <div key={c.id} className="rounded-lg bg-[var(--jarvis-bg-tertiary)] px-4 py-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-mono uppercase text-[var(--jarvis-accent)]">{c.message_type}</span>
+                        <span className="text-[10px] text-[var(--jarvis-text-muted)]">&middot; {c.priority}</span>
+                        <span className="text-[10px] text-[var(--jarvis-text-muted)] ml-auto">{formatRelativeTime(c.created_at)}</span>
+                      </div>
+                      {c.subject && <p className="text-xs font-medium text-[var(--jarvis-text-primary)] mb-1">{c.subject}</p>}
+                      <p className="text-sm text-[var(--jarvis-text-secondary)]">{c.body}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </GlowCard>
           </TabsContent>
 
           {/* Evolution Tab */}
           <TabsContent value="evolution" className="mt-4">
             <GlowCard className="p-5" hover={false}>
-              <h3 className="heading-mono mb-4">Evolution</h3>
-              <EmptyState message="No evolution proposals" />
+              <h3 className="heading-mono mb-4">Evolution ({agentEvolution.length})</h3>
+              {agentEvolution.length === 0 ? (
+                <EmptyState message="No evolution proposals for this agent" />
+              ) : (
+                <div className="space-y-2">
+                  {agentEvolution.map((e) => (
+                    <div key={e.id} className="rounded-lg bg-[var(--jarvis-bg-tertiary)] px-4 py-3">
+                      <p className="text-sm text-[var(--jarvis-text-primary)]">{e.title}</p>
+                      <p className="text-[10px] text-[var(--jarvis-text-muted)] mt-1">
+                        {e.category} &middot; {e.status} &middot; {formatRelativeTime(e.created_at)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </GlowCard>
           </TabsContent>
         </Tabs>

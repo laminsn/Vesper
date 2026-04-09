@@ -8,6 +8,10 @@ import { Bot, Activity, Building2, BookOpen, Zap, Shield } from "lucide-react";
 import { useAgents } from "@/hooks/use-agents";
 import { useDepartments } from "@/hooks/use-departments";
 import { useRealtimeSubscription } from "@/hooks/use-realtime";
+import { usePlaybooks } from "@/hooks/use-playbooks";
+import { useDirectives } from "@/hooks/use-directives";
+import { useTasks } from "@/hooks/use-tasks";
+import { useKpis } from "@/hooks/use-kpis";
 import {
   GlowCard,
   DepartmentBadge,
@@ -35,22 +39,7 @@ import {
 
 // ── Static data ─────────────────────────────────
 
-const RECENT_ACTIVITY = [
-  { id: "1", text: "Bridge acknowledged intake directive", time: "2m ago", color: "var(--dept-admissions)" },
-  { id: "2", text: "Harvest submitted Medicare claims batch", time: "15m ago", color: "var(--dept-finance)" },
-  { id: "3", text: "Beacon launched Google Ads campaign", time: "1h ago", color: "var(--dept-marketing)" },
-  { id: "4", text: "Quality completed chart audit", time: "3h ago", color: "var(--dept-compliance)" },
-  { id: "5", text: "Recruit posted 3 new positions", time: "5h ago", color: "var(--dept-staffing)" },
-] as const;
-
-const TICKER_ITEMS = [
-  { text: "System Status: All agents operational", color: "var(--jarvis-success)" },
-  { text: "Active Playbooks: 3 running", color: "var(--jarvis-accent-2)" },
-  { text: "SLA Compliance: 96%", color: "var(--jarvis-accent)" },
-  { text: "Next Scheduled: Medicare Recertification — 2d", color: "var(--jarvis-warning)" },
-  { text: "Evolution Proposals: 0 pending", color: "var(--jarvis-accent-3)" },
-  { text: "HIPAA Status: Compliant", color: "var(--jarvis-success)" },
-];
+// Activity and ticker are now computed from real data inside the component
 
 const DEPT_COLORS: Record<string, string> = {
   Executive: "#06d6a0",
@@ -93,7 +82,13 @@ export default function CommandCenterPage() {
   const router = useRouter();
   const { data: agents = [], isLoading: agentsLoading } = useAgents();
   const { data: departments = [], isLoading: deptsLoading } = useDepartments();
+  const { data: playbooks = [] } = usePlaybooks();
+  const { data: directives = [] } = useDirectives();
+  const { data: tasks = [] } = useTasks();
+  const { data: kpis = [] } = useKpis();
   useRealtimeSubscription("agents");
+  useRealtimeSubscription("directives");
+  useRealtimeSubscription("tasks");
 
   // ── Agent counts ────────────────────────────
   const activeCount = useMemo(
@@ -113,6 +108,38 @@ export default function CommandCenterPage() {
     }
     return lookup;
   }, [agents]);
+
+  // Real task/directive counts
+  const activeTasks = useMemo(() => tasks.filter((t) => t.status === "in_progress" || t.status === "todo").length, [tasks]);
+  const totalTasks = tasks.length;
+  const pendingDirectives = useMemo(() => directives.filter((d) => d.status === "pending" || d.status === "in_progress").length, [directives]);
+  const completedDirectives = useMemo(() => directives.filter((d) => d.status === "completed").length, [directives]);
+
+  // Dynamic ticker from real data
+  const tickerItems = useMemo(() => [
+    { text: `System Status: ${activeCount}/${agents.length} agents online`, color: activeCount === agents.length ? "var(--jarvis-success)" : "var(--jarvis-warning)" },
+    { text: `Active Playbooks: ${playbooks.length} configured`, color: "var(--jarvis-accent-2)" },
+    { text: `Directives: ${pendingDirectives} pending, ${completedDirectives} completed`, color: "var(--jarvis-accent)" },
+    { text: `Tasks: ${activeTasks} active of ${totalTasks} total`, color: "var(--jarvis-warning)" },
+    { text: `KPIs Tracked: ${kpis.length} metrics`, color: "var(--jarvis-accent-3)" },
+    { text: "HIPAA Status: Compliant", color: "var(--jarvis-success)" },
+  ], [activeCount, agents.length, playbooks.length, pendingDirectives, completedDirectives, activeTasks, totalTasks, kpis.length]);
+
+  // Activity feed from recent directives
+  const recentActivity = useMemo(() => {
+    return directives.slice(0, 5).map((d, i) => {
+      const agent = agents.find((a) => a.id === d.target_agent_id);
+      const diffMs = Date.now() - new Date(d.created_at).getTime();
+      const diffMin = Math.floor(diffMs / 60000);
+      const timeStr = diffMin < 60 ? `${diffMin}m ago` : diffMin < 1440 ? `${Math.floor(diffMin / 60)}h ago` : `${Math.floor(diffMin / 1440)}d ago`;
+      return {
+        id: d.id,
+        text: `${agent?.name ?? "Agent"}: ${d.instruction.slice(0, 60)}${d.instruction.length > 60 ? "..." : ""}`,
+        time: timeStr,
+        color: d.status === "completed" ? "var(--jarvis-success)" : d.status === "pending" ? "var(--jarvis-warning)" : "var(--jarvis-accent-2)",
+      };
+    });
+  }, [directives, agents]);
 
   if (agentsLoading || deptsLoading) {
     return (
@@ -235,7 +262,7 @@ export default function CommandCenterPage() {
 
         {/* Status Ticker */}
         <motion.div variants={fadeUp}>
-          <TickerBar items={TICKER_ITEMS} speed="slow" />
+          <TickerBar items={tickerItems} speed="slow" />
         </motion.div>
 
         {/* Top Section — Arc Reactor + Circular Gauges */}
@@ -292,7 +319,7 @@ export default function CommandCenterPage() {
             <HudFrame title="SLA">
               <div className="flex justify-center py-3">
                 <CircularGauge
-                  value={96}
+                  value={completedDirectives > 0 ? Math.round((completedDirectives / Math.max(directives.length, 1)) * 100) : 100}
                   max={100}
                   label="Compliance"
                   unit="%"
@@ -307,8 +334,8 @@ export default function CommandCenterPage() {
             <HudFrame title="TASKS">
               <div className="flex justify-center py-3">
                 <CircularGauge
-                  value={13}
-                  max={15}
+                  value={activeTasks}
+                  max={Math.max(totalTasks, 1)}
                   label="Active"
                   unit=""
                   size="md"
@@ -565,7 +592,7 @@ export default function CommandCenterPage() {
                   </GlowCard>
                   <GlowCard className="p-3 text-center" hover={false}>
                     <span style={{ color: "var(--jarvis-accent-3)" }}><BookOpen className="h-5 w-5 mx-auto mb-1" /></span>
-                    <p className="text-lg font-bold text-[var(--jarvis-text-primary)]">11</p>
+                    <p className="text-lg font-bold text-[var(--jarvis-text-primary)]">{playbooks.length}</p>
                     <p className="text-[10px] text-[var(--jarvis-text-muted)] uppercase tracking-wider">Playbooks</p>
                   </GlowCard>
                   <GlowCard className="p-3 text-center" hover={false}>
@@ -581,7 +608,9 @@ export default function CommandCenterPage() {
             <motion.div variants={fadeUp}>
               <HudFrame title="ACTIVITY FEED">
                 <div className="space-y-3 p-1">
-                  {RECENT_ACTIVITY.map((item) => (
+                  {(recentActivity.length > 0 ? recentActivity : [
+                    { id: "empty", text: "No recent activity. Issue a directive to get started.", time: "—", color: "var(--jarvis-text-muted)" },
+                  ]).map((item) => (
                     <div key={item.id} className="flex items-start gap-3">
                       <span
                         className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full"
