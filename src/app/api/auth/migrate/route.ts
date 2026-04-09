@@ -237,6 +237,14 @@ export async function POST() {
       status: "disconnected",
       used_by_departments: [],
     },
+    {
+      integration_key: "beehiiv",
+      display_name: "Beehiiv",
+      category: "api",
+      config: { type: "api", description: "Newsletter & blog publishing platform" },
+      status: "disconnected",
+      used_by_departments: ["marketing"],
+    },
   ];
 
   let inserted = 0;
@@ -387,7 +395,49 @@ export async function POST() {
     results.push("Daily reports already exist for today — skipped seeding");
   }
 
-  // Phase 4: Seed calendar events
+  // Phase 4: Seed journalist agents (one per company)
+  const journalistAgents = [
+    { slug: "quill", name: "Quill", role: "Content Publishing Specialist & Journalist", department: "marketing", soul_file_path: "souls/quill.soul.md" },
+  ];
+
+  for (const agent of journalistAgents) {
+    const { data: existing } = await supabase.from("agents").select("id").eq("slug", agent.slug).single();
+    if (!existing) {
+      const { error } = await supabase.from("agents").insert({
+        slug: agent.slug,
+        name: agent.name,
+        role: agent.role,
+        department: agent.department,
+        tier: "specialist",
+        status: "idle",
+        soul_file_path: agent.soul_file_path,
+      });
+      if (error) {
+        results.push(`Agent failed: ${agent.slug} — ${error.message}`);
+      } else {
+        results.push(`Agent created: ${agent.slug}`);
+        // Set parent to Camila (marketing director)
+        const camila = agentMap.get("camila");
+        if (camila) {
+          const { data: newAgent } = await supabase.from("agents").select("id").eq("slug", agent.slug).single();
+          if (newAgent) {
+            await supabase.from("agents").update({ parent_agent_id: camila }).eq("id", newAgent.id);
+          }
+        }
+      }
+    } else {
+      results.push(`Agent already exists: ${agent.slug}`);
+    }
+  }
+
+  // Update marketing department agent count
+  const { data: mktAgents } = await supabase.from("agents").select("id").eq("department", "marketing");
+  if (mktAgents) {
+    await supabase.from("departments").update({ agent_count: mktAgents.length }).eq("slug", "marketing");
+    results.push(`Marketing dept agent count updated: ${mktAgents.length}`);
+  }
+
+  // Phase 5: Seed calendar events
   const { data: existingEvents } = await supabase
     .from("calendar_events")
     .select("id")

@@ -1102,6 +1102,24 @@ export const integrations: readonly Integration[] = [
 
   // ── Email & Outreach ────────────────────────────
   {
+    id: "beehiiv",
+    name: "Beehiiv",
+    description: "Newsletter platform for creating, publishing, and growing email newsletters and blogs",
+    category: "communication",
+    tier: "professional",
+    icon: "newspaper",
+    color: "#7c3aed",
+    features: ["Newsletter publishing", "Blog hosting", "Subscriber management", "Analytics dashboard", "Custom domains", "API access", "Automations", "Referral program", "Ad network", "Segmentation"],
+    connectionUrl: "https://app.beehiiv.com",
+    defaultMethod: "api",
+    supportedMethods: ["api", "browser", "manual"],
+    credentialFields: [
+      { key: "apiKey", label: "API Key", type: "password", placeholder: "bh_...", required: true },
+      { key: "publicationId", label: "Publication ID", type: "text", placeholder: "pub_...", required: true },
+      { key: "customDomain", label: "Custom Domain", type: "url", placeholder: "https://newsletter.yourcompany.com", required: false },
+    ],
+  },
+  {
     id: "resend",
     name: "Resend",
     description: "Developer-first email API for transactional and marketing emails",
