@@ -11,6 +11,7 @@ export const en = {
   "nav.taskBoard": "Task Board",
   "nav.dailyTasks": "Daily Tasks",
   "nav.intelligence": "Intelligence",
+  "nav.dailyReports": "Daily Reports",
   "nav.commsHub": "Comms Hub",
   "nav.evolution": "Evolution",
   "nav.admin": "Admin",

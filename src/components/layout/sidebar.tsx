@@ -12,6 +12,7 @@ import {
   ListChecks,
   ClipboardCheck,
   MessageSquare,
+  FileText,
   Sparkles,
   Settings,
   ShieldCheck,
@@ -73,6 +74,7 @@ const NAV_SECTIONS: readonly SidebarSection[] = [
   {
     labelKey: "nav.intelligence",
     items: [
+      { labelKey: "nav.dailyReports", href: "/daily-reports", icon: FileText },
       { labelKey: "nav.commsHub", href: "/comms", icon: MessageSquare },
       { labelKey: "nav.evolution", href: "/evolution", icon: Sparkles },
       { labelKey: "nav.dashboards", href: "/custom-dashboards", icon: LayoutDashboard },

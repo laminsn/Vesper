@@ -13,6 +13,7 @@ export const es: Record<TranslationKey, string> = {
   "nav.taskBoard": "Tablero de Tareas",
   "nav.dailyTasks": "Tareas Diarias",
   "nav.intelligence": "Inteligencia",
+  "nav.dailyReports": "Reportes Diarios",
   "nav.commsHub": "Centro de Comms",
   "nav.evolution": "Evoluci\u00f3n",
   "nav.admin": "Admin",
