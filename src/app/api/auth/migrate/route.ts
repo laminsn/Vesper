@@ -276,6 +276,10 @@ export async function POST() {
 
   results.push(`Integrations inserted/updated: ${inserted}, Skipped: ${skipped}`);
 
+  // Shared: Get agent IDs for submitters (used by daily reports + calendar seeds)
+  const { data: agentRows } = await supabase.from("agents").select("id, slug");
+  const agentMap = new Map((agentRows ?? []).map((a: { slug: string; id: string }) => [a.slug, a.id]));
+
   // Phase 3: Seed daily reports for today
   const today = new Date().toISOString().split("T")[0];
   const { data: existingReports } = await supabase
@@ -285,9 +289,6 @@ export async function POST() {
     .limit(1);
 
   if (!existingReports || existingReports.length === 0) {
-    // Get agent IDs for submitters
-    const { data: agentRows } = await supabase.from("agents").select("id, slug");
-    const agentMap = new Map((agentRows ?? []).map((a) => [a.slug, a.id]));
 
     const dailyReports = [
       {
@@ -384,6 +385,164 @@ export async function POST() {
     results.push(`Daily reports seeded: ${reportsInserted}`);
   } else {
     results.push("Daily reports already exist for today — skipped seeding");
+  }
+
+  // Phase 4: Seed calendar events
+  const { data: existingEvents } = await supabase
+    .from("calendar_events")
+    .select("id")
+    .limit(1);
+
+  if (!existingEvents || existingEvents.length === 0) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    const calendarEvents = [
+      {
+        title: "Leadership Team Standup",
+        description: "Daily 45-minute standup with Diane and all 7 department directors. Review operations, escalations, and priorities.",
+        event_type: "standup",
+        start_time: `${todayStr}T08:00:00`,
+        end_time: `${todayStr}T08:45:00`,
+        department: "executive",
+        assigned_agent_id: agentMap.get("diane") ?? null,
+        attendees: [
+          { name: "Diane", role: "CEO" },
+          { name: "Camila", role: "Marketing Director" },
+          { name: "Dr. Elena", role: "Clinical Director" },
+          { name: "River", role: "Admissions Director" },
+          { name: "Terra", role: "Staffing Director" },
+          { name: "Serenity", role: "CX Director" },
+          { name: "Justice", role: "Compliance Director" },
+          { name: "Steward", role: "Finance Director" },
+        ],
+        google_meet_link: "https://meet.google.com/hhcc-standup",
+        status: "completed",
+      },
+      {
+        title: "IDT Meeting — Weekly Interdisciplinary Team",
+        description: "Weekly IDT meeting chaired by Dr. Elena. Review all active patient cases, care coordination, bereavement updates.",
+        event_type: "idt",
+        start_time: `${tomorrowStr}T09:00:00`,
+        end_time: `${tomorrowStr}T10:30:00`,
+        department: "clinical-operations",
+        assigned_agent_id: agentMap.get("dr-elena") ?? null,
+        attendees: [
+          { name: "Dr. Elena", role: "Chair" },
+          { name: "Nurse Riley", role: "DON" },
+          { name: "Solace", role: "RN" },
+          { name: "Spirit", role: "Chaplain" },
+          { name: "Harmony", role: "MSW" },
+          { name: "Bereavement", role: "Bereavement Coord" },
+        ],
+        google_meet_link: "https://meet.google.com/hhcc-idt",
+        status: "scheduled",
+      },
+      {
+        title: "Marketing Team Standup",
+        description: "Weekly marketing standup — channel performance, campaign updates, event planning.",
+        event_type: "standup",
+        start_time: `${tomorrowStr}T08:00:00`,
+        end_time: `${tomorrowStr}T08:45:00`,
+        department: "marketing",
+        assigned_agent_id: agentMap.get("camila") ?? null,
+        attendees: [
+          { name: "Camila", role: "Director" },
+          { name: "Haven", role: "Research" },
+          { name: "Beacon", role: "Paid Ads" },
+          { name: "Roots", role: "SEO" },
+          { name: "Ember", role: "Email" },
+          { name: "Grace", role: "Community" },
+          { name: "Gather", role: "Events" },
+        ],
+        status: "scheduled",
+      },
+      {
+        title: "Compliance Weekly Briefing",
+        description: "Justice + Chart weekly compliance briefing. Chart audit findings, regulatory updates, documentation review.",
+        event_type: "review",
+        start_time: `${tomorrowStr}T13:00:00`,
+        end_time: `${tomorrowStr}T13:45:00`,
+        department: "compliance-quality",
+        assigned_agent_id: agentMap.get("justice") ?? null,
+        attendees: [
+          { name: "Justice", role: "Compliance Director" },
+          { name: "Chart", role: "Medical Records" },
+        ],
+        status: "scheduled",
+      },
+      {
+        title: "New Patient Assessment — Hospital Referral",
+        description: "Triage conducting bedside assessment for new hospital referral. Memorial Hospital discharge planner referral.",
+        event_type: "appointment",
+        start_time: `${todayStr}T10:00:00`,
+        end_time: `${todayStr}T11:00:00`,
+        department: "admissions-intake",
+        assigned_agent_id: agentMap.get("triage") ?? null,
+        location: "Memorial Hospital, Room 412",
+        status: "scheduled",
+      },
+      {
+        title: "Monthly Mission Alignment",
+        description: "Monthly all-hands meeting. Family letters read aloud. 'Are we still this company?' reflection.",
+        event_type: "meeting",
+        start_time: `${tomorrowStr}T16:00:00`,
+        end_time: `${tomorrowStr}T17:00:00`,
+        department: "executive",
+        assigned_agent_id: agentMap.get("diane") ?? null,
+        google_meet_link: "https://meet.google.com/hhcc-mission",
+        status: "scheduled",
+      },
+    ];
+
+    let eventsInserted = 0;
+    for (const event of calendarEvents) {
+      const { error } = await supabase.from("calendar_events").insert(event);
+      if (error) {
+        results.push(`Event failed: ${event.title} — ${error.message}`);
+      } else {
+        eventsInserted++;
+      }
+    }
+    results.push(`Calendar events seeded: ${eventsInserted}`);
+
+    // Seed meeting notes for the completed standup
+    const { data: standupEvent } = await supabase
+      .from("calendar_events")
+      .select("id")
+      .eq("title", "Leadership Team Standup")
+      .limit(1)
+      .single();
+
+    if (standupEvent) {
+      await supabase.from("meeting_notes").insert([
+        {
+          event_id: standupEvent.id,
+          note_type: "agenda",
+          title: "Standup Agenda",
+          body: "1. Census update (Dr. Elena)\n2. Admissions pipeline (River)\n3. Staffing coverage (Terra)\n4. Marketing metrics (Camila)\n5. Compliance status (Justice)\n6. Financial update (Steward)\n7. CX feedback (Serenity)\n8. Action items review",
+          author_agent_id: agentMap.get("diane") ?? null,
+          action_items: [],
+        },
+        {
+          event_id: standupEvent.id,
+          note_type: "summary",
+          title: "Standup Summary — All Systems Operational",
+          body: "All 7 directors present. Census stable at 12 patients. 2 new referrals in pipeline — 1 hospital, 1 physician. 100% staffing coverage today. Google Ads CPI trending down 12% (positive). Zero compliance findings. Claims batch submitted on time. Family satisfaction at 4.6/5.0. No escalations.",
+          author_agent_id: agentMap.get("diane") ?? null,
+          action_items: [
+            { task: "Schedule assessment for hospital referral by EOD", assignee: "Triage", due: tomorrowStr },
+            { task: "Follow up on physician referral family contact", assignee: "Bridge", due: tomorrowStr },
+            { task: "Prepare Q2 community event proposal", assignee: "Gather", due: tomorrowStr },
+          ],
+        },
+      ]);
+      results.push("Meeting notes seeded for standup");
+    }
+  } else {
+    results.push("Calendar events already exist — skipped seeding");
   }
 
   return NextResponse.json({ success: true, results });

@@ -11,6 +11,7 @@ export const pt: Record<TranslationKey, string> = {
   "nav.playbooks": "Playbooks",
   "nav.handoffs": "Transfer\u00eancias",
   "nav.taskBoard": "Quadro de Tarefas",
+  "nav.calendar": "Calendário",
   "nav.dailyTasks": "Tarefas Diárias",
   "nav.intelligence": "Intelig\u00eancia",
   "nav.dailyReports": "Relatórios Diários",

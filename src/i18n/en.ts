@@ -9,6 +9,7 @@ export const en = {
   "nav.playbooks": "Playbooks",
   "nav.handoffs": "Handoffs",
   "nav.taskBoard": "Task Board",
+  "nav.calendar": "Calendar",
   "nav.dailyTasks": "Daily Tasks",
   "nav.intelligence": "Intelligence",
   "nav.dailyReports": "Daily Reports",

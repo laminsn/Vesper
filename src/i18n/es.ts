@@ -11,6 +11,7 @@ export const es: Record<TranslationKey, string> = {
   "nav.playbooks": "Manuales",
   "nav.handoffs": "Traspasos",
   "nav.taskBoard": "Tablero de Tareas",
+  "nav.calendar": "Calendario",
   "nav.dailyTasks": "Tareas Diarias",
   "nav.intelligence": "Inteligencia",
   "nav.dailyReports": "Reportes Diarios",
