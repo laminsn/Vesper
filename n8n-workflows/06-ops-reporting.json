@@ -1,0 +1,90 @@
+{
+  "name": "HHCC - Daily Ops Reporting",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "triggerAtHour": 6 }] }
+      },
+      "id": "cron-trigger",
+      "name": "Daily 6am Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/kpis",
+        "method": "GET",
+        "options": { "timeout": 15000 }
+      },
+      "id": "fetch-kpis",
+      "name": "Fetch KPIs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/tasks?status=in_progress",
+        "method": "GET",
+        "options": { "timeout": 15000 }
+      },
+      "id": "fetch-tasks",
+      "name": "Fetch Active Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate metrics into daily report\nconst kpis = $('Fetch KPIs').first().json;\nconst tasks = $('Fetch Active Tasks').first().json;\n\nconst report = {\n  report_date: new Date().toISOString().split('T')[0],\n  generated_at: new Date().toISOString(),\n  kpi_summary: {\n    total_kpis: Array.isArray(kpis) ? kpis.length : 0,\n    on_target: 0,\n    below_target: 0\n  },\n  task_summary: {\n    active: Array.isArray(tasks) ? tasks.length : 0\n  }\n};\n\nreturn [{ json: report }];"
+      },
+      "id": "generate-report",
+      "name": "Generate Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 400]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/webhooks/agent-heartbeat",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-vesper-webhook-secret", "value": "={{ $env.VESPER_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "agent_slug", "value": "diane" },
+            { "name": "status", "value": "active" },
+            { "name": "task_context", "value": "Daily ops report generated for {{ $json.report_date }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "callback-vesper",
+      "name": "Notify Diane",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1000, 400]
+    }
+  ],
+  "connections": {
+    "Daily 6am Trigger": {
+      "main": [
+        [
+          { "node": "Fetch KPIs", "type": "main", "index": 0 },
+          { "node": "Fetch Active Tasks", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Fetch KPIs": { "main": [[{ "node": "Generate Report", "type": "main", "index": 0 }]] },
+    "Fetch Active Tasks": { "main": [[{ "node": "Generate Report", "type": "main", "index": 0 }]] },
+    "Generate Report": { "main": [[{ "node": "Notify Diane", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "HHCC" }, { "name": "Operations" }]
+}

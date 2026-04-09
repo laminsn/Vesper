@@ -1,0 +1,94 @@
+{
+  "name": "HHCC - Clinical Documentation Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "clinical-documentation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Clinical Docs",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract clinical note and prepare for NLP\nconst note = $input.first().json;\nreturn [{\n  json: {\n    patient_id: note.patient_id,\n    visit_id: note.visit_id,\n    note_text: note.clinical_note,\n    note_type: note.note_type || 'visit',\n    author_agent: note.author_agent,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "prepare-note",
+      "name": "Prepare Clinical Note",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/tasks",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "title", "value": "Review clinical note for {{ $json.patient_id }}" },
+            { "name": "description", "value": "Auto-generated from visit {{ $json.visit_id }}. Requires clinician review before EMR submission." },
+            { "name": "status", "value": "review" },
+            { "name": "priority", "value": "high" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-review-task",
+      "name": "Create Review Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/webhooks/playbook-step",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-vesper-webhook-secret", "value": "={{ $env.VESPER_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "execution_id", "value": "={{ $json.execution_id }}" },
+            { "name": "step_number", "value": "={{ $json.current_step }}" },
+            { "name": "status", "value": "completed" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "callback-vesper",
+      "name": "Callback to Vesper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: 'Documentation queued for review', visit_id: $json.visit_id }) }}"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - Clinical Docs": { "main": [[{ "node": "Prepare Clinical Note", "type": "main", "index": 0 }]] },
+    "Prepare Clinical Note": { "main": [[{ "node": "Create Review Task", "type": "main", "index": 0 }]] },
+    "Create Review Task": { "main": [[{ "node": "Callback to Vesper", "type": "main", "index": 0 }]] },
+    "Callback to Vesper": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "HHCC" }, { "name": "Clinical" }]
+}

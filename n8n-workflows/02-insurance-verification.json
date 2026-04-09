@@ -1,0 +1,132 @@
+{
+  "name": "HHCC - Insurance Verification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "insurance-verification",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Insurance",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.PAYER_API_URL }}/eligibility",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "member_id", "value": "={{ $json.member_id }}" },
+            { "name": "payer_id", "value": "={{ $json.payer_id }}" },
+            { "name": "service_type", "value": "hospice" }
+          ]
+        },
+        "options": { "timeout": 60000 }
+      },
+      "id": "check-eligibility",
+      "name": "Check Payer Eligibility",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{ $json.eligible }}", "value2": true }]
+        }
+      },
+      "id": "eligible-check",
+      "name": "Eligible?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/tasks",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "title", "value": "File NOE for {{ $json.patient_name }}" },
+            { "name": "status", "value": "todo" },
+            { "name": "priority", "value": "high" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "file-noe",
+      "name": "Create NOE Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1000, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/webhooks/playbook-step",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-vesper-webhook-secret", "value": "={{ $env.VESPER_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "execution_id", "value": "={{ $json.execution_id }}" },
+            { "name": "step_number", "value": "={{ $json.current_step }}" },
+            { "name": "status", "value": "completed" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "callback-vesper",
+      "name": "Callback to Vesper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, eligible: true, benefits: $json.benefits }) }}"
+      },
+      "id": "respond-eligible",
+      "name": "Respond Eligible",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1500, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, eligible: false, reason: $json.denial_reason }) }}"
+      },
+      "id": "respond-ineligible",
+      "name": "Respond Ineligible",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1000, 450]
+    }
+  ],
+  "connections": {
+    "Webhook - Insurance": { "main": [[{ "node": "Check Payer Eligibility", "type": "main", "index": 0 }]] },
+    "Check Payer Eligibility": { "main": [[{ "node": "Eligible?", "type": "main", "index": 0 }]] },
+    "Eligible?": {
+      "main": [
+        [{ "node": "Create NOE Task", "type": "main", "index": 0 }],
+        [{ "node": "Respond Ineligible", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create NOE Task": { "main": [[{ "node": "Callback to Vesper", "type": "main", "index": 0 }]] },
+    "Callback to Vesper": { "main": [[{ "node": "Respond Eligible", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "HHCC" }, { "name": "Clinical" }]
+}

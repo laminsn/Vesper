@@ -1,0 +1,83 @@
+{
+  "name": "HHCC - Referral Management",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "referral-management",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - New Referral",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/tasks",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "title", "value": "Track referral: {{ $json.referral_source }} - {{ $json.patient_name }}" },
+            { "name": "description", "value": "Source: {{ $json.referral_source }}. Contact: {{ $json.contact_info }}. Urgency: {{ $json.urgency }}" },
+            { "name": "status", "value": "todo" },
+            { "name": "priority", "value": "={{ $json.urgency === 'immediate' ? 'critical' : 'high' }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-tracking",
+      "name": "Create Tracking Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/webhooks/agent-heartbeat",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-vesper-webhook-secret", "value": "={{ $env.VESPER_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "agent_slug", "value": "bridge" },
+            { "name": "status", "value": "executing" },
+            { "name": "task_context", "value": "Processing new referral from {{ $json.referral_source }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-agent",
+      "name": "Update Bridge Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: 'Referral tracked', task_id: $json.id }) }}"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - New Referral": { "main": [[{ "node": "Create Tracking Task", "type": "main", "index": 0 }]] },
+    "Create Tracking Task": { "main": [[{ "node": "Update Bridge Status", "type": "main", "index": 0 }]] },
+    "Update Bridge Status": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "HHCC" }, { "name": "Operations" }]
+}

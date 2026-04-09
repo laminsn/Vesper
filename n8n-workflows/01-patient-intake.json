@@ -1,0 +1,137 @@
+{
+  "name": "HHCC - Patient Intake Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "patient-intake",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Patient Intake",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/agents/verify/status",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "task", "value": "verify_insurance" },
+            { "name": "patient_id", "value": "={{ $json.patient_id }}" },
+            { "name": "insurance_info", "value": "={{ $json.insurance_info }}" }
+          ]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "verify-insurance",
+      "name": "Verify Insurance",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.eligible }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-eligibility",
+      "name": "Eligible?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/agents/triage/status",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "task", "value": "schedule_assessment" },
+            { "name": "patient_id", "value": "={{ $json.patient_id }}" },
+            { "name": "urgency", "value": "={{ $json.urgency }}" }
+          ]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "schedule-assessment",
+      "name": "Schedule Assessment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1000, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/webhooks/playbook-step",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-vesper-webhook-secret", "value": "={{ $env.VESPER_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "execution_id", "value": "={{ $json.execution_id }}" },
+            { "name": "step_number", "value": "={{ $json.current_step }}" },
+            { "name": "status", "value": "completed" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "callback-vesper",
+      "name": "Callback to Vesper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: 'Patient intake processed', patient_id: $json.patient_id }) }}"
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1500, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, message: 'Patient not eligible', patient_id: $json.patient_id }) }}"
+      },
+      "id": "respond-ineligible",
+      "name": "Respond Ineligible",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1000, 450]
+    }
+  ],
+  "connections": {
+    "Webhook - Patient Intake": { "main": [[{ "node": "Verify Insurance", "type": "main", "index": 0 }]] },
+    "Verify Insurance": { "main": [[{ "node": "Eligible?", "type": "main", "index": 0 }]] },
+    "Eligible?": {
+      "main": [
+        [{ "node": "Schedule Assessment", "type": "main", "index": 0 }],
+        [{ "node": "Respond Ineligible", "type": "main", "index": 0 }]
+      ]
+    },
+    "Schedule Assessment": { "main": [[{ "node": "Callback to Vesper", "type": "main", "index": 0 }]] },
+    "Callback to Vesper": { "main": [[{ "node": "Respond Success", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "HHCC" }, { "name": "Clinical" }]
+}

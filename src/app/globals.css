@@ -1,26 +1,390 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════
+   JARVIS COMMAND CENTER — Design System
+   ═══════════════════════════════════════════════════ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core Backgrounds */
+  --jarvis-bg-primary: #0a0e17;
+  --jarvis-bg-secondary: #111827;
+  --jarvis-bg-tertiary: #1a2332;
+  --jarvis-bg-elevated: #1f2937;
+
+  /* Accent Colors */
+  --jarvis-accent: #06d6a0;
+  --jarvis-accent-dim: #06d6a080;
+  --jarvis-accent-2: #00b4d8;
+  --jarvis-accent-3: #7c3aed;
+
+  /* Semantic Colors */
+  --jarvis-danger: #ef4444;
+  --jarvis-warning: #f59e0b;
+  --jarvis-success: #10b981;
+  --jarvis-info: #3b82f6;
+
+  /* Text */
+  --jarvis-text-primary: #f1f5f9;
+  --jarvis-text-secondary: #94a3b8;
+  --jarvis-text-muted: #64748b;
+
+  /* Borders & Effects */
+  --jarvis-border: rgba(6, 214, 160, 0.15);
+  --jarvis-border-strong: rgba(6, 214, 160, 0.3);
+  --jarvis-glow: 0 0 20px rgba(6, 214, 160, 0.15);
+  --jarvis-glow-strong: 0 0 30px rgba(6, 214, 160, 0.3);
+  --jarvis-glow-accent2: 0 0 20px rgba(0, 180, 216, 0.15);
+
+  /* Department Colors */
+  --dept-executive: #f59e0b;
+  --dept-marketing: #ec4899;
+  --dept-clinical: #ef4444;
+  --dept-admissions: #3b82f6;
+  --dept-staffing: #8b5cf6;
+  --dept-cx: #06d6a0;
+  --dept-compliance: #f97316;
+  --dept-finance: #14b8a6;
+
+  /* shadcn/ui compatible variables */
+  --background: var(--jarvis-bg-primary);
+  --foreground: var(--jarvis-text-primary);
+  --card: var(--jarvis-bg-secondary);
+  --card-foreground: var(--jarvis-text-primary);
+  --popover: var(--jarvis-bg-tertiary);
+  --popover-foreground: var(--jarvis-text-primary);
+  --primary: var(--jarvis-accent);
+  --primary-foreground: #0a0e17;
+  --secondary: var(--jarvis-bg-tertiary);
+  --secondary-foreground: var(--jarvis-text-primary);
+  --muted: var(--jarvis-bg-tertiary);
+  --muted-foreground: var(--jarvis-text-secondary);
+  --accent: var(--jarvis-bg-elevated);
+  --accent-foreground: var(--jarvis-text-primary);
+  --destructive: var(--jarvis-danger);
+  --destructive-foreground: #fef2f2;
+  --border: var(--jarvis-border);
+  --input: var(--jarvis-border);
+  --ring: var(--jarvis-accent);
+  --radius: 0.75rem;
+
+  /* Sidebar */
+  --sidebar-bg: #070b12;
+  --sidebar-border: rgba(6, 214, 160, 0.08);
+}
+
+/* ═══════════════════════════════════════════════════
+   LIGHT THEME — AI Army Brand
+   ═══════════════════════════════════════════════════ */
+
+html.light {
+  /* Core Backgrounds */
+  --jarvis-bg-primary: #FAFAFA;
+  --jarvis-bg-secondary: #FFFFFF;
+  --jarvis-bg-tertiary: #F1F5F9;
+  --jarvis-bg-elevated: #E2E8F0;
+
+  /* Accent Colors — AI Army Ember Orange + Purple */
+  --jarvis-accent: #FF6B35;
+  --jarvis-accent-dim: rgba(255, 107, 53, 0.5);
+  --jarvis-accent-2: #6C5CE7;
+  --jarvis-accent-3: #D4551F;
+
+  /* Semantic Colors */
+  --jarvis-danger: #DC2626;
+  --jarvis-warning: #D97706;
+  --jarvis-success: #059669;
+  --jarvis-info: #2563EB;
+
+  /* Text */
+  --jarvis-text-primary: #0D0D0D;
+  --jarvis-text-secondary: #475569;
+  --jarvis-text-muted: #94A3B8;
+
+  /* Borders & Effects */
+  --jarvis-border: rgba(255, 107, 53, 0.15);
+  --jarvis-border-strong: rgba(255, 107, 53, 0.3);
+  --jarvis-glow: 0 2px 8px rgba(255, 107, 53, 0.1);
+  --jarvis-glow-strong: 0 4px 16px rgba(255, 107, 53, 0.15);
+  --jarvis-glow-accent2: 0 2px 8px rgba(108, 92, 231, 0.1);
+
+  /* Department Colors — same hues but slightly more vivid for light bg */
+  --dept-executive: #D97706;
+  --dept-marketing: #DB2777;
+  --dept-clinical: #DC2626;
+  --dept-admissions: #2563EB;
+  --dept-staffing: #7C3AED;
+  --dept-cx: #059669;
+  --dept-compliance: #EA580C;
+  --dept-finance: #0D9488;
+
+  /* shadcn overrides */
+  --background: #FAFAFA;
+  --foreground: #0D0D0D;
+  --card: #FFFFFF;
+  --card-foreground: #0D0D0D;
+  --popover: #FFFFFF;
+  --popover-foreground: #0D0D0D;
+  --primary: #FF6B35;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0D0D0D;
+  --muted: #F1F5F9;
+  --muted-foreground: #475569;
+  --accent: #E2E8F0;
+  --accent-foreground: #0D0D0D;
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(255, 107, 53, 0.15);
+  --input: rgba(255, 107, 53, 0.15);
+  --ring: #FF6B35;
+
+  /* Sidebar — light version */
+  --sidebar-bg: #FFFFFF;
+  --sidebar-border: rgba(255, 107, 53, 0.1);
+
+  color-scheme: light;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* JARVIS-specific theme tokens */
+  --color-jarvis-accent: var(--jarvis-accent);
+  --color-jarvis-accent-2: var(--jarvis-accent-2);
+  --color-jarvis-accent-3: var(--jarvis-accent-3);
+  --color-jarvis-danger: var(--jarvis-danger);
+  --color-jarvis-warning: var(--jarvis-warning);
+  --color-jarvis-success: var(--jarvis-success);
+  --color-jarvis-info: var(--jarvis-info);
+  --color-jarvis-bg-primary: var(--jarvis-bg-primary);
+  --color-jarvis-bg-secondary: var(--jarvis-bg-secondary);
+  --color-jarvis-bg-tertiary: var(--jarvis-bg-tertiary);
+  --color-jarvis-bg-elevated: var(--jarvis-bg-elevated);
+  --color-jarvis-text-primary: var(--jarvis-text-primary);
+  --color-jarvis-text-secondary: var(--jarvis-text-secondary);
+  --color-jarvis-text-muted: var(--jarvis-text-muted);
+
+  /* Department colors */
+  --color-dept-executive: var(--dept-executive);
+  --color-dept-marketing: var(--dept-marketing);
+  --color-dept-clinical: var(--dept-clinical);
+  --color-dept-admissions: var(--dept-admissions);
+  --color-dept-staffing: var(--dept-staffing);
+  --color-dept-cx: var(--dept-cx);
+  --color-dept-compliance: var(--dept-compliance);
+  --color-dept-finance: var(--dept-finance);
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ═══════════════════════════════════════════════════
+   BASE STYLES
+   ═══════════════════════════════════════════════════ */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(6, 214, 160, 0.2) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(6, 214, 160, 0.2);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 214, 160, 0.4);
+}
+
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--jarvis-bg-primary);
+  color: var(--jarvis-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════════════════════════
+   JARVIS GLOW EFFECTS
+   ═══════════════════════════════════════════════════ */
+
+.glow-card {
+  border: 1px solid var(--jarvis-border);
+  background: var(--jarvis-bg-secondary);
+  transition: all 0.3s ease;
+}
+
+.glow-card:hover {
+  border-color: var(--jarvis-border-strong);
+  box-shadow: var(--jarvis-glow);
+}
+
+.glow-line {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--jarvis-accent-dim),
+    var(--jarvis-accent),
+    var(--jarvis-accent-dim),
+    transparent
+  );
+}
+
+.glow-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--jarvis-accent);
+  box-shadow: 0 0 8px var(--jarvis-accent), 0 0 16px var(--jarvis-accent-dim);
+}
+
+/* ═══════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════ */
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 4px var(--jarvis-accent), 0 0 8px var(--jarvis-accent-dim);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 12px var(--jarvis-accent), 0 0 24px var(--jarvis-accent-dim);
+    opacity: 0.8;
+  }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out forwards;
+}
+
+/* ═══════════════════════════════════════════════════
+   STATUS INDICATORS
+   ═══════════════════════════════════════════════════ */
+
+.status-active {
+  background: var(--jarvis-success);
+  box-shadow: 0 0 8px var(--jarvis-success);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.status-executing {
+  background: var(--jarvis-accent-2);
+  box-shadow: 0 0 8px var(--jarvis-accent-2);
+  animation: pulse-glow 1s ease-in-out infinite;
+}
+
+.status-idle {
+  background: var(--jarvis-warning);
+  box-shadow: 0 0 4px rgba(245, 158, 11, 0.3);
+}
+
+.status-offline {
+  background: var(--jarvis-text-muted);
+}
+
+/* ═══════════════════════════════════════════════════
+   TYPOGRAPHY UTILITIES
+   ═══════════════════════════════════════════════════ */
+
+.heading-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.heading-mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--jarvis-text-secondary);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--jarvis-accent), var(--jarvis-accent-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES
+   ═══════════════════════════════════════════════════ */
+
+html.light *::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 53, 0.2);
+}
+
+html.light *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 53, 0.4);
+}
+
+html.light .glow-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+html.light .glow-card:hover {
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.12);
 }

@@ -1,0 +1,87 @@
+{
+  "name": "HHCC - Appointment Reminders",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "triggerAtHour": 8 }] }
+      },
+      "id": "cron-trigger",
+      "name": "Daily 8am Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/tasks?status=todo&priority=normal",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-vesper-webhook-secret", "value": "={{ $env.VESPER_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "options": { "timeout": 15000 }
+      },
+      "id": "fetch-appointments",
+      "name": "Fetch Tomorrow Appointments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter for appointments within next 24 hours\nconst items = $input.all();\nconst tomorrow = new Date();\ntomorrow.setDate(tomorrow.getDate() + 1);\nconst tomorrowStr = tomorrow.toISOString().split('T')[0];\n\nreturn items.filter(item => {\n  const dueDate = item.json.due_date;\n  return dueDate && dueDate.startsWith(tomorrowStr);\n}).map(item => ({ json: item.json }));"
+      },
+      "id": "filter-tomorrow",
+      "name": "Filter Tomorrow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare reminder messages for each appointment\nconst item = $input.first().json;\nreturn [{\n  json: {\n    patient_name: item.title,\n    appointment_time: item.due_date,\n    reminder_type: 'sms_email',\n    message: `Reminder: You have a visit scheduled tomorrow. Please call us if you need to reschedule.`,\n    sent_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "prepare-reminder",
+      "name": "Prepare Reminder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/webhooks/agent-heartbeat",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-vesper-webhook-secret", "value": "={{ $env.VESPER_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "agent_slug", "value": "embrace" },
+            { "name": "status", "value": "active" },
+            { "name": "task_context", "value": "Sending appointment reminders" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "callback-vesper",
+      "name": "Update Agent Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Daily 8am Trigger": { "main": [[{ "node": "Fetch Tomorrow Appointments", "type": "main", "index": 0 }]] },
+    "Fetch Tomorrow Appointments": { "main": [[{ "node": "Filter Tomorrow", "type": "main", "index": 0 }]] },
+    "Filter Tomorrow": { "main": [[{ "node": "Prepare Reminder", "type": "main", "index": 0 }]] },
+    "Prepare Reminder": { "main": [[{ "node": "Update Agent Status", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "HHCC" }, { "name": "Operations" }]
+}

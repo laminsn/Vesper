@@ -1,0 +1,70 @@
+{
+  "name": "HHCC - Agent Optimizer",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "triggerAtDay": 1, "triggerAtHour": 8 }] }
+      },
+      "id": "cron-trigger",
+      "name": "Weekly Monday 8am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/agents",
+        "method": "GET",
+        "options": { "timeout": 15000 }
+      },
+      "id": "fetch-agents",
+      "name": "Fetch All Agents",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analyze agent performance and suggest optimizations\nconst agents = $input.first().json;\nconst agentList = Array.isArray(agents) ? agents : (agents?.data || []);\n\nconst proposals = agentList\n  .filter(a => a.status === 'idle')\n  .slice(0, 5)\n  .map(agent => ({\n    agent_slug: agent.slug,\n    agent_name: agent.name,\n    proposal_type: 'optimization',\n    description: `Agent ${agent.name} has been idle. Consider reviewing task assignment or capability expansion.`,\n    priority: 'normal',\n    created_at: new Date().toISOString()\n  }));\n\nreturn proposals.map(p => ({ json: p }));"
+      },
+      "id": "analyze-performance",
+      "name": "Analyze Performance",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/webhooks/agent-heartbeat",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-vesper-webhook-secret", "value": "={{ $env.VESPER_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "agent_slug", "value": "diane" },
+            { "name": "status", "value": "active" },
+            { "name": "task_context", "value": "Weekly agent optimization analysis complete. {{ $input.all().length }} proposals generated." }
+          ]
+        },
+        "options": {}
+      },
+      "id": "callback-vesper",
+      "name": "Notify Diane",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "Weekly Monday 8am": { "main": [[{ "node": "Fetch All Agents", "type": "main", "index": 0 }]] },
+    "Fetch All Agents": { "main": [[{ "node": "Analyze Performance", "type": "main", "index": 0 }]] },
+    "Analyze Performance": { "main": [[{ "node": "Notify Diane", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "HHCC" }, { "name": "Operations" }]
+}

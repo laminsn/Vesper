@@ -1,0 +1,88 @@
+{
+  "name": "HHCC - Platform Health Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "minutes", "minutesInterval": 5 }] }
+      },
+      "id": "cron-trigger",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/agents",
+        "method": "GET",
+        "options": { "timeout": 10000 }
+      },
+      "id": "check-agents",
+      "name": "Check Agent Statuses",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check platform health\nconst agents = $input.first().json;\nconst agentList = Array.isArray(agents) ? agents : (agents?.data || []);\n\nconst offline = agentList.filter(a => a.status === 'offline');\nconst total = agentList.length;\nconst healthy = total - offline.length;\nconst healthPercent = total > 0 ? Math.round((healthy / total) * 100) : 0;\n\nreturn [{\n  json: {\n    check_time: new Date().toISOString(),\n    total_agents: total,\n    healthy_agents: healthy,\n    offline_agents: offline.length,\n    offline_names: offline.map(a => a.name),\n    health_percent: healthPercent,\n    status: healthPercent >= 90 ? 'healthy' : healthPercent >= 70 ? 'degraded' : 'critical'\n  }\n}];"
+      },
+      "id": "evaluate-health",
+      "name": "Evaluate Health",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [{ "value1": "={{ $json.status }}", "operation": "notEqual", "value2": "healthy" }]
+        }
+      },
+      "id": "degraded-check",
+      "name": "Degraded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.VESPER_BASE_URL }}/api/webhooks/agent-heartbeat",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-vesper-webhook-secret", "value": "={{ $env.VESPER_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "agent_slug", "value": "diane" },
+            { "name": "status", "value": "active" },
+            { "name": "task_context", "value": "ALERT: Platform {{ $json.status }}. {{ $json.offline_agents }} agents offline: {{ $json.offline_names }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "alert-diane",
+      "name": "Alert Diane",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1250, 200]
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes": { "main": [[{ "node": "Check Agent Statuses", "type": "main", "index": 0 }]] },
+    "Check Agent Statuses": { "main": [[{ "node": "Evaluate Health", "type": "main", "index": 0 }]] },
+    "Evaluate Health": { "main": [[{ "node": "Degraded?", "type": "main", "index": 0 }]] },
+    "Degraded?": {
+      "main": [
+        [{ "node": "Alert Diane", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "HHCC" }, { "name": "Operations" }]
+}

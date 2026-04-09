@@ -1,0 +1,88 @@
+import type { Department } from "@/types";
+
+export const departments: Department[] = [
+  {
+    id: "dept-executive",
+    slug: "executive",
+    name: "Executive",
+    director_agent_id: "diane",
+    color: "#f59e0b",
+    icon: "Crown",
+    agent_count: 1,
+    created_at: "2026-03-06T00:00:00Z",
+  },
+  {
+    id: "dept-marketing",
+    slug: "marketing",
+    name: "Marketing",
+    director_agent_id: "camila",
+    color: "#ec4899",
+    icon: "Megaphone",
+    agent_count: 7,
+    created_at: "2026-03-06T00:00:00Z",
+  },
+  {
+    id: "dept-clinical",
+    slug: "clinical-operations",
+    name: "Clinical Operations",
+    director_agent_id: "dr-elena",
+    color: "#ef4444",
+    icon: "HeartPulse",
+    agent_count: 7,
+    created_at: "2026-03-06T00:00:00Z",
+  },
+  {
+    id: "dept-admissions",
+    slug: "admissions-intake",
+    name: "Admissions & Intake",
+    director_agent_id: "river",
+    color: "#3b82f6",
+    icon: "UserPlus",
+    agent_count: 4,
+    created_at: "2026-03-06T00:00:00Z",
+  },
+  {
+    id: "dept-staffing",
+    slug: "caregiver-staffing",
+    name: "Caregiver Staffing",
+    director_agent_id: "terra",
+    color: "#8b5cf6",
+    icon: "Users",
+    agent_count: 5,
+    created_at: "2026-03-06T00:00:00Z",
+  },
+  {
+    id: "dept-cx",
+    slug: "customer-experience",
+    name: "Customer Experience",
+    director_agent_id: "serenity",
+    color: "#06d6a0",
+    icon: "Heart",
+    agent_count: 6,
+    created_at: "2026-03-06T00:00:00Z",
+  },
+  {
+    id: "dept-compliance",
+    slug: "compliance-quality",
+    name: "Compliance & Quality",
+    director_agent_id: "justice",
+    color: "#f97316",
+    icon: "Shield",
+    agent_count: 5,
+    created_at: "2026-03-06T00:00:00Z",
+  },
+  {
+    id: "dept-finance",
+    slug: "accounting-finance",
+    name: "Accounting & Finance",
+    director_agent_id: "steward",
+    color: "#14b8a6",
+    icon: "Calculator",
+    agent_count: 6,
+    created_at: "2026-03-06T00:00:00Z",
+  },
+];
+
+export function getDepartmentBySlug(slug: string): Department | undefined {
+  return departments.find((d) => d.slug === slug);
+}

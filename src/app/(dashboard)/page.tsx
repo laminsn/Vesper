@@ -1,0 +1,611 @@
+"use client";
+
+import { useMemo } from "react";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Bot, Activity, Building2, BookOpen, Zap, Shield } from "lucide-react";
+import { useAgents } from "@/hooks/use-agents";
+import { useDepartments } from "@/hooks/use-departments";
+import { useRealtimeSubscription } from "@/hooks/use-realtime";
+import {
+  GlowCard,
+  DepartmentBadge,
+  StatusIndicator,
+  ArcReactor,
+  CircularGauge,
+  HudFrame,
+  ScanLine,
+  GridBackground,
+  TickerBar,
+} from "@/components/jarvis";
+import {
+  VesperBarChart,
+  VesperLineChart,
+  VesperAreaChart,
+  VesperPieChart,
+  Sparkline,
+} from "@/components/charts";
+import {
+  metricsHistory,
+  departmentMetrics,
+  getLast7Days,
+  getLast30Days,
+} from "@/data/metrics-history";
+
+// ── Static data ─────────────────────────────────
+
+const RECENT_ACTIVITY = [
+  { id: "1", text: "Bridge acknowledged intake directive", time: "2m ago", color: "var(--dept-admissions)" },
+  { id: "2", text: "Harvest submitted Medicare claims batch", time: "15m ago", color: "var(--dept-finance)" },
+  { id: "3", text: "Beacon launched Google Ads campaign", time: "1h ago", color: "var(--dept-marketing)" },
+  { id: "4", text: "Quality completed chart audit", time: "3h ago", color: "var(--dept-compliance)" },
+  { id: "5", text: "Recruit posted 3 new positions", time: "5h ago", color: "var(--dept-staffing)" },
+] as const;
+
+const TICKER_ITEMS = [
+  { text: "System Status: All agents operational", color: "var(--jarvis-success)" },
+  { text: "Active Playbooks: 3 running", color: "var(--jarvis-accent-2)" },
+  { text: "SLA Compliance: 96%", color: "var(--jarvis-accent)" },
+  { text: "Next Scheduled: Medicare Recertification — 2d", color: "var(--jarvis-warning)" },
+  { text: "Evolution Proposals: 0 pending", color: "var(--jarvis-accent-3)" },
+  { text: "HIPAA Status: Compliant", color: "var(--jarvis-success)" },
+];
+
+const DEPT_COLORS: Record<string, string> = {
+  Executive: "#06d6a0",
+  Marketing: "#f72585",
+  Clinical: "#4cc9f0",
+  Admissions: "#fca311",
+  Staffing: "#7209b7",
+  CX: "#4895ef",
+  Compliance: "#ef476f",
+  Finance: "#06d6a0",
+};
+
+// ── Animation variants ──────────────────────────
+
+const stagger = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
+
+// ── Date formatting helper ──────────────────────
+
+function formatShortDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${months[d.getMonth()]} ${d.getDate()}`;
+}
+
+function formatCurrency(value: number): string {
+  return `$${value.toLocaleString()}`;
+}
+
+// ── Page component ──────────────────────────────
+
+export default function CommandCenterPage() {
+  const router = useRouter();
+  const { data: agents = [], isLoading: agentsLoading } = useAgents();
+  const { data: departments = [], isLoading: deptsLoading } = useDepartments();
+  useRealtimeSubscription("agents");
+
+  // ── Agent counts ────────────────────────────
+  const activeCount = useMemo(
+    () => agents.filter((a) => a.status === "active" || a.status === "executing").length,
+    [agents]
+  );
+
+  const executingCount = useMemo(
+    () => agents.filter((a) => a.status === "executing").length,
+    [agents]
+  );
+
+  const directorLookup = useMemo(() => {
+    const lookup: Record<string, string> = {};
+    for (const agent of agents) {
+      lookup[agent.slug] = agent.name;
+    }
+    return lookup;
+  }, [agents]);
+
+  if (agentsLoading || deptsLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <p className="text-sm text-[var(--jarvis-text-muted)] animate-pulse">Loading command center...</p>
+      </div>
+    );
+  }
+
+  // ── Chart data: Tasks by Department (7-day sum) ──
+  const deptTasksData = useMemo(() => {
+    const last7Dates = getLast7Days().map((m) => m.date);
+    const deptNames = [...new Set(departmentMetrics.map((m) => m.department))];
+
+    return deptNames.map((dept) => {
+      const deptLast7 = departmentMetrics.filter(
+        (m) => m.department === dept && last7Dates.includes(m.date)
+      );
+      const totalTasks = deptLast7.reduce((sum, m) => sum + m.tasks_completed, 0);
+      return {
+        department: dept,
+        tasks: totalTasks,
+        fill: DEPT_COLORS[dept] ?? "#4cc9f0",
+      };
+    });
+  }, []);
+
+  // ── Chart data: 7-Day Trends ──────────────────
+  const trendLineData = useMemo(() => {
+    const last7 = getLast7Days();
+    return last7.map((m) => ({
+      date: formatShortDate(m.date),
+      Census: m.census,
+      Referrals: m.referrals,
+      "Satisfaction x10": Math.round(m.satisfaction * 10),
+    }));
+  }, []);
+
+  // ── Chart data: Revenue vs Expenses (30 days) ──
+  const revenueExpenseData = useMemo(() => {
+    const last30 = getLast30Days();
+    return last30.map((m) => ({
+      date: formatShortDate(m.date),
+      Revenue: m.revenue,
+      Expenses: m.expenses,
+    }));
+  }, []);
+
+  // ── Chart data: Communication Channels (7-day sum) ──
+  const commsData = useMemo(() => {
+    const last7 = getLast7Days();
+    const emailTotal = last7.reduce((s, m) => s + m.email_sent, 0);
+    const smsTotal = last7.reduce((s, m) => s + m.sms_sent, 0);
+    const callsTotal = last7.reduce((s, m) => s + m.calls_made, 0);
+    return [
+      { name: "Email", value: emailTotal, color: "#4895ef" },
+      { name: "SMS", value: smsTotal, color: "#06d6a0" },
+      { name: "Calls", value: callsTotal, color: "#fca311" },
+    ];
+  }, []);
+
+  // ── Chart data: SLA Compliance (7-day bars) ──
+  const slaBarData = useMemo(() => {
+    const last7 = getLast7Days();
+    return last7.map((m) => ({
+      date: formatShortDate(m.date),
+      SLA: m.sla_compliance,
+    }));
+  }, []);
+
+  // ── Sparkline data: last 7 days arrays ────────
+  const sparklineData = useMemo(() => {
+    const last7 = getLast7Days();
+    return {
+      census: last7.map((m) => m.census),
+      sla: last7.map((m) => m.sla_compliance),
+      satisfaction: last7.map((m) => m.satisfaction),
+      docCompliance: last7.map((m) => m.doc_compliance),
+      revenue: last7.map((m) => m.revenue),
+      staffCoverage: last7.map((m) => m.staff_coverage),
+    };
+  }, []);
+
+  // ── Latest metric values ──────────────────────
+  const latest = useMemo(() => {
+    const last = metricsHistory[metricsHistory.length - 1];
+    return {
+      census: last.census,
+      sla: last.sla_compliance,
+      satisfaction: last.satisfaction,
+      docCompliance: last.doc_compliance,
+      revenue: last.revenue,
+      staffCoverage: last.staff_coverage,
+    };
+  }, []);
+
+  return (
+    <div className="relative">
+      {/* Background grid pattern */}
+      <GridBackground dotColor="var(--jarvis-accent)" />
+      <ScanLine speed="slow" />
+
+      <motion.div
+        className="relative z-10 space-y-6"
+        variants={stagger}
+        initial="hidden"
+        animate="show"
+      >
+        {/* ═══ Section 1: Header + Ticker + Arc Reactor + Gauges ═══ */}
+
+        {/* Page Header */}
+        <motion.div variants={fadeUp}>
+          <h1 className="heading-display text-3xl text-[var(--jarvis-text-primary)]">
+            Command Center
+          </h1>
+          <p className="text-sm text-[var(--jarvis-text-muted)] mt-1">
+            AI Agent Workforce Management
+          </p>
+        </motion.div>
+
+        {/* Status Ticker */}
+        <motion.div variants={fadeUp}>
+          <TickerBar items={TICKER_ITEMS} speed="slow" />
+        </motion.div>
+
+        {/* Top Section — Arc Reactor + Circular Gauges */}
+        <motion.div
+          className="grid grid-cols-2 gap-6 lg:grid-cols-6"
+          variants={stagger}
+        >
+          {/* Arc Reactor — Center piece */}
+          <motion.div
+            className="col-span-2 flex items-center justify-center"
+            variants={fadeUp}
+          >
+            <HudFrame title="SYSTEM CORE">
+              <div className="flex flex-col items-center py-4">
+                <ArcReactor
+                  size="lg"
+                  label={String(agents.length)}
+                  sublabel="AGENTS"
+                />
+                <div className="mt-3 flex items-center gap-4 text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-[var(--jarvis-success)] shadow-[0_0_6px_var(--jarvis-success)]" />
+                    {activeCount} Active
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-[var(--jarvis-accent-2)] shadow-[0_0_6px_var(--jarvis-accent-2)]" />
+                    {executingCount} Executing
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-[var(--jarvis-warning)]" />
+                    {agents.length - activeCount} Idle
+                  </span>
+                </div>
+              </div>
+            </HudFrame>
+          </motion.div>
+
+          {/* Circular Gauges */}
+          <motion.div variants={fadeUp}>
+            <HudFrame title="AGENTS">
+              <div className="flex justify-center py-3">
+                <CircularGauge
+                  value={activeCount}
+                  max={agents.length}
+                  label="Active"
+                  unit=""
+                  size="md"
+                />
+              </div>
+            </HudFrame>
+          </motion.div>
+
+          <motion.div variants={fadeUp}>
+            <HudFrame title="SLA">
+              <div className="flex justify-center py-3">
+                <CircularGauge
+                  value={96}
+                  max={100}
+                  label="Compliance"
+                  unit="%"
+                  size="md"
+                  color="var(--jarvis-accent-2)"
+                />
+              </div>
+            </HudFrame>
+          </motion.div>
+
+          <motion.div variants={fadeUp}>
+            <HudFrame title="TASKS">
+              <div className="flex justify-center py-3">
+                <CircularGauge
+                  value={13}
+                  max={15}
+                  label="Active"
+                  unit=""
+                  size="md"
+                  color="var(--jarvis-warning)"
+                />
+              </div>
+            </HudFrame>
+          </motion.div>
+
+          <motion.div variants={fadeUp}>
+            <HudFrame title="UPTIME">
+              <div className="flex justify-center py-3">
+                <CircularGauge
+                  value={99.9}
+                  max={100}
+                  label="System"
+                  unit="%"
+                  size="md"
+                  color="var(--jarvis-success)"
+                />
+              </div>
+            </HudFrame>
+          </motion.div>
+        </motion.div>
+
+        {/* ═══ Section 2: Operations Dashboard ═══ */}
+        <motion.div variants={fadeUp}>
+          <HudFrame title="OPERATIONS DASHBOARD">
+            <div className="grid gap-6 lg:grid-cols-2 p-1">
+              {/* Tasks by Department */}
+              <div>
+                <VesperBarChart
+                  title="Tasks by Department (7-Day)"
+                  data={deptTasksData}
+                  xKey="department"
+                  bars={[{ key: "tasks", color: "#4cc9f0", label: "Tasks Completed" }]}
+                  height={280}
+                />
+              </div>
+
+              {/* 7-Day Trends */}
+              <div>
+                <VesperLineChart
+                  title="7-Day Trends"
+                  data={trendLineData}
+                  lines={[
+                    { key: "Census", color: "#4cc9f0", label: "Census", area: true },
+                    { key: "Referrals", color: "#4895ef", label: "Referrals" },
+                    { key: "Satisfaction x10", color: "#06d6a0", label: "Satisfaction x10" },
+                  ]}
+                  height={280}
+                />
+              </div>
+            </div>
+          </HudFrame>
+        </motion.div>
+
+        {/* ═══ Section 3: Performance Analytics ═══ */}
+        <motion.div variants={fadeUp}>
+          <HudFrame title="PERFORMANCE ANALYTICS">
+            <div className="grid gap-6 lg:grid-cols-3 p-1">
+              {/* Revenue vs Expenses */}
+              <div>
+                <VesperAreaChart
+                  title="Revenue vs Expenses (30d)"
+                  data={revenueExpenseData}
+                  areas={[
+                    { key: "Revenue", color: "#06d6a0", label: "Revenue" },
+                    { key: "Expenses", color: "#ef476f", label: "Expenses" },
+                  ]}
+                  stacked={false}
+                  height={260}
+                />
+              </div>
+
+              {/* Communication Channels */}
+              <div>
+                <VesperPieChart
+                  title="Communication Channels"
+                  data={commsData}
+                  donut={true}
+                  centerLabel="Comms"
+                  height={260}
+                />
+              </div>
+
+              {/* SLA Compliance */}
+              <div>
+                <VesperBarChart
+                  title="SLA Compliance (7-Day)"
+                  data={slaBarData}
+                  xKey="date"
+                  bars={[{ key: "SLA", color: "#4cc9f0", label: "SLA %" }]}
+                  height={260}
+                />
+              </div>
+            </div>
+          </HudFrame>
+        </motion.div>
+
+        {/* ═══ Section 4: KPI Trends (Sparkline Cards) ═══ */}
+        <motion.div variants={fadeUp}>
+          <HudFrame title="KPI TRENDS">
+            <div className="grid grid-cols-2 gap-3 p-1 sm:grid-cols-3 lg:grid-cols-6">
+              {/* Census */}
+              <GlowCard className="p-3" glowColor="#4cc9f0" hover={false}>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-[var(--jarvis-text-muted)]">
+                  Census
+                </p>
+                <p className="text-xl font-bold text-[var(--jarvis-text-primary)] mt-1">
+                  {latest.census}
+                </p>
+                <div className="mt-2">
+                  <Sparkline data={sparklineData.census} color="#4cc9f0" width={80} height={24} />
+                </div>
+              </GlowCard>
+
+              {/* SLA */}
+              <GlowCard className="p-3" glowColor="#06d6a0" hover={false}>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-[var(--jarvis-text-muted)]">
+                  SLA
+                </p>
+                <p className="text-xl font-bold text-[var(--jarvis-text-primary)] mt-1">
+                  {latest.sla}%
+                </p>
+                <div className="mt-2">
+                  <Sparkline data={sparklineData.sla} color="#06d6a0" width={80} height={24} />
+                </div>
+              </GlowCard>
+
+              {/* Satisfaction */}
+              <GlowCard className="p-3" glowColor="#4895ef" hover={false}>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-[var(--jarvis-text-muted)]">
+                  Satisfaction
+                </p>
+                <p className="text-xl font-bold text-[var(--jarvis-text-primary)] mt-1">
+                  {latest.satisfaction}
+                </p>
+                <div className="mt-2">
+                  <Sparkline data={sparklineData.satisfaction} color="#4895ef" width={80} height={24} />
+                </div>
+              </GlowCard>
+
+              {/* Doc Compliance */}
+              <GlowCard className="p-3" glowColor="#fca311" hover={false}>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-[var(--jarvis-text-muted)]">
+                  Doc Compliance
+                </p>
+                <p className="text-xl font-bold text-[var(--jarvis-text-primary)] mt-1">
+                  {latest.docCompliance}%
+                </p>
+                <div className="mt-2">
+                  <Sparkline data={sparklineData.docCompliance} color="#fca311" width={80} height={24} />
+                </div>
+              </GlowCard>
+
+              {/* Revenue/Day */}
+              <GlowCard className="p-3" glowColor="#06d6a0" hover={false}>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-[var(--jarvis-text-muted)]">
+                  Revenue/Day
+                </p>
+                <p className="text-xl font-bold text-[var(--jarvis-text-primary)] mt-1">
+                  {formatCurrency(latest.revenue)}
+                </p>
+                <div className="mt-2">
+                  <Sparkline data={sparklineData.revenue} color="#06d6a0" width={80} height={24} />
+                </div>
+              </GlowCard>
+
+              {/* Coverage */}
+              <GlowCard className="p-3" glowColor="#7209b7" hover={false}>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-[var(--jarvis-text-muted)]">
+                  Coverage
+                </p>
+                <p className="text-xl font-bold text-[var(--jarvis-text-primary)] mt-1">
+                  {latest.staffCoverage}%
+                </p>
+                <div className="mt-2">
+                  <Sparkline data={sparklineData.staffCoverage} color="#7209b7" width={80} height={24} />
+                </div>
+              </GlowCard>
+            </div>
+          </HudFrame>
+        </motion.div>
+
+        {/* ═══ Section 5: Departments + Quick Stats + Activity Feed ═══ */}
+        <div className="grid gap-6 lg:grid-cols-5">
+          {/* Left — Department Grid */}
+          <motion.div className="lg:col-span-3" variants={fadeUp}>
+            <HudFrame title="DEPARTMENTS">
+              <div className="grid grid-cols-1 gap-3 p-1 sm:grid-cols-2">
+                {departments.map((dept) => {
+                  const directorName = dept.director_agent_id
+                    ? directorLookup[dept.director_agent_id] ?? "—"
+                    : "—";
+                  const deptAgents = agents.filter(
+                    (a) => a.department === dept.slug
+                  );
+                  const activeInDept = deptAgents.filter(
+                    (a) => a.status === "active" || a.status === "executing"
+                  ).length;
+
+                  return (
+                    <Link
+                      key={dept.slug}
+                      href={`/departments/${dept.slug}`}
+                    >
+                      <GlowCard
+                        className="p-3"
+                        glowColor={dept.color}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <DepartmentBadge slug={dept.slug} name={dept.name} size="sm" />
+                          <span className="text-[10px] font-mono text-[var(--jarvis-text-muted)]">
+                            {activeInDept}/{dept.agent_count}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[var(--jarvis-text-secondary)]">
+                          Dir: {directorName}
+                        </p>
+                        {/* Mini agent status row */}
+                        <div className="flex gap-1 mt-2">
+                          {deptAgents.map((a) => (
+                            <StatusIndicator
+                              key={a.slug}
+                              status={a.status}
+                              size="sm"
+                            />
+                          ))}
+                        </div>
+                      </GlowCard>
+                    </Link>
+                  );
+                })}
+              </div>
+            </HudFrame>
+          </motion.div>
+
+          {/* Right — Quick Stats + Activity */}
+          <motion.div className="lg:col-span-2 space-y-6" variants={stagger}>
+            {/* Quick Stats */}
+            <motion.div variants={fadeUp}>
+              <HudFrame title="QUICK STATS">
+                <div className="grid grid-cols-2 gap-3 p-1">
+                  <GlowCard className="p-3 text-center" hover={false}>
+                    <span style={{ color: "var(--jarvis-accent)" }}><Bot className="h-5 w-5 mx-auto mb-1" /></span>
+                    <p className="text-lg font-bold text-[var(--jarvis-text-primary)]">{agents.length}</p>
+                    <p className="text-[10px] text-[var(--jarvis-text-muted)] uppercase tracking-wider">Agents</p>
+                  </GlowCard>
+                  <GlowCard className="p-3 text-center" hover={false}>
+                    <span style={{ color: "var(--jarvis-accent-2)" }}><Building2 className="h-5 w-5 mx-auto mb-1" /></span>
+                    <p className="text-lg font-bold text-[var(--jarvis-text-primary)]">{departments.length}</p>
+                    <p className="text-[10px] text-[var(--jarvis-text-muted)] uppercase tracking-wider">Departments</p>
+                  </GlowCard>
+                  <GlowCard className="p-3 text-center" hover={false}>
+                    <span style={{ color: "var(--jarvis-accent-3)" }}><BookOpen className="h-5 w-5 mx-auto mb-1" /></span>
+                    <p className="text-lg font-bold text-[var(--jarvis-text-primary)]">11</p>
+                    <p className="text-[10px] text-[var(--jarvis-text-muted)] uppercase tracking-wider">Playbooks</p>
+                  </GlowCard>
+                  <GlowCard className="p-3 text-center" hover={false}>
+                    <span style={{ color: "var(--jarvis-success)" }}><Shield className="h-5 w-5 mx-auto mb-1" /></span>
+                    <p className="text-lg font-bold text-[var(--jarvis-text-primary)]">0</p>
+                    <p className="text-[10px] text-[var(--jarvis-text-muted)] uppercase tracking-wider">PHI Violations</p>
+                  </GlowCard>
+                </div>
+              </HudFrame>
+            </motion.div>
+
+            {/* Recent Activity */}
+            <motion.div variants={fadeUp}>
+              <HudFrame title="ACTIVITY FEED">
+                <div className="space-y-3 p-1">
+                  {RECENT_ACTIVITY.map((item) => (
+                    <div key={item.id} className="flex items-start gap-3">
+                      <span
+                        className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full"
+                        style={{
+                          backgroundColor: item.color,
+                          boxShadow: `0 0 6px ${item.color}`,
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-[var(--jarvis-text-primary)]">
+                          {item.text}
+                        </p>
+                        <p className="text-xs text-[var(--jarvis-text-muted)]">
+                          {item.time}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </HudFrame>
+            </motion.div>
+          </motion.div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
