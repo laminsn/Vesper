@@ -148,7 +148,7 @@ export async function POST() {
   for (const integration of newIntegrations) {
     const { error } = await supabase
       .from("integration_registry")
-      .upsert(integration, { onConflict: "integration_key" });
+      .insert(integration);
 
     if (error) {
       results.push(`Failed: ${integration.integration_key} — ${error.message}`);
