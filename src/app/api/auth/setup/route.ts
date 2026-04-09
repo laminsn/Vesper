@@ -3,9 +3,8 @@ import { NextResponse } from "next/server";
 
 /**
  * POST /api/auth/setup
- * One-time bootstrap: creates the initial admin user via Supabase Admin API.
+ * Bootstrap: creates an admin user via Supabase Admin API.
  * Requires SUPABASE_SERVICE_ROLE_KEY in env.
- * Returns the created user's ID so we can verify it worked.
  */
 export async function POST(request: Request) {
   const { email, password, displayName } = await request.json();
@@ -31,32 +30,7 @@ export async function POST(request: Request) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // Step 1: Delete the corrupt raw-SQL user directly from the database
-  // This bypasses the broken auth.admin.listUsers() call
-  await supabase.from("user_roles").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-
-  // Remove from auth.users and auth.identities via raw SQL
-  const { error: cleanupError } = await supabase.rpc("exec_sql", {
-    query: `
-      DELETE FROM auth.identities WHERE user_id IN (SELECT id FROM auth.users WHERE email = '${email}');
-      DELETE FROM auth.users WHERE email = '${email}';
-    `,
-  });
-
-  // If RPC doesn't exist, try the admin API
-  if (cleanupError) {
-    try {
-      const { data: existingUsers } = await supabase.auth.admin.listUsers();
-      const existing = existingUsers?.users?.find((u) => u.email === email);
-      if (existing) {
-        await supabase.auth.admin.deleteUser(existing.id);
-      }
-    } catch {
-      // Continue anyway — the create call will tell us if there's a conflict
-    }
-  }
-
-  // Step 2: Create user via admin API (proper password hashing)
+  // Create user via admin API (proper password hashing, skip email confirm)
   const { data: created, error: createError } =
     await supabase.auth.admin.createUser({
       email,
@@ -72,7 +46,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // Insert user_roles record
+  // Insert user_roles record (owner role)
   const { error: roleError } = await supabase.from("user_roles").upsert(
     {
       user_id: created.user.id,
@@ -83,7 +57,10 @@ export async function POST(request: Request) {
   );
 
   if (roleError) {
-    return NextResponse.json({ error: roleError.message }, { status: 500 });
+    return NextResponse.json(
+      { error: roleError.message, step: "userRoles" },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({
