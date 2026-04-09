@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Play, Clock, Footprints, Loader2 } from "lucide-react";
-import { usePlaybooks } from "@/hooks/use-playbooks";
+import { toast } from "sonner";
+import { usePlaybooks, usePlaybookExecutions, useExecutePlaybook } from "@/hooks/use-playbooks";
 import { useAgents } from "@/hooks/use-agents";
 import { GlowCard, StatusIndicator } from "@/components/jarvis";
 import type { Playbook, Agent } from "@/types";
@@ -88,17 +89,39 @@ function PlaybookCard({ playbook, agents }: PlaybookCardProps) {
       {/* Footer */}
       <div className="flex items-center justify-between pt-1 border-t border-[var(--jarvis-border)]">
         <span className="text-[10px] text-[var(--jarvis-text-muted)] font-mono">
-          0 executions
+          {playbook.id ? "Ready" : "0 executions"}
         </span>
-        <button
-          disabled
-          className="flex items-center gap-1.5 rounded-md border border-[var(--jarvis-accent)] bg-transparent px-3 py-1.5 text-xs font-medium text-[var(--jarvis-accent)] opacity-60 cursor-not-allowed transition-colors"
-        >
-          <Play className="h-3 w-3" />
-          Run Play
-        </button>
+        <RunPlayButton playbookId={playbook.id} />
       </div>
     </GlowCard>
+  );
+}
+
+/* ───── run button ───── */
+
+function RunPlayButton({ playbookId }: { readonly playbookId: string }) {
+  const executeMutation = useExecutePlaybook();
+  const isRunning = executeMutation.isPending;
+
+  const handleRun = () => {
+    executeMutation.mutate(
+      { playbook_id: playbookId, triggered_by: "user" },
+      {
+        onSuccess: () => toast.success("Playbook execution started"),
+        onError: () => toast.error("Failed to start playbook"),
+      }
+    );
+  };
+
+  return (
+    <button
+      onClick={handleRun}
+      disabled={isRunning}
+      className="flex items-center gap-1.5 rounded-md border border-[var(--jarvis-accent)] bg-transparent px-3 py-1.5 text-xs font-medium text-[var(--jarvis-accent)] transition-colors hover:bg-[var(--jarvis-accent)]/10 disabled:opacity-50"
+    >
+      {isRunning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+      {isRunning ? "Running..." : "Run Play"}
+    </button>
   );
 }
 

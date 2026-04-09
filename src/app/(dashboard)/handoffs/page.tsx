@@ -126,7 +126,10 @@ function HandoffCard({ handoff, agents, departments }: HandoffCardProps) {
       {/* Footer */}
       <div className="flex items-center justify-between pt-1 border-t border-[var(--jarvis-border)]">
         <span className="text-[10px] text-[var(--jarvis-text-muted)] font-mono">
-          0 executions
+          Ready to execute
+        </span>
+        <span className="text-[10px] text-[var(--jarvis-accent)]">
+          SLA: {handoff.sla_description?.split(".")[0] ?? "—"}
         </span>
       </div>
     </GlowCard>

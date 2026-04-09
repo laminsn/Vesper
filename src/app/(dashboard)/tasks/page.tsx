@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Kanban, CalendarDays, Table2, GanttChart, Plus } from "lucide-react";
+import { Kanban, CalendarDays, Table2, GanttChart, Plus, Loader2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { getAgentBySlug } from "@/data/agents";
-import { departments } from "@/data/departments";
+import { useAgents } from "@/hooks/use-agents";
+import { useDepartments } from "@/hooks/use-departments";
+import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from "@/hooks/use-tasks";
 import {
   KanbanView,
   CalendarView,
@@ -16,7 +17,7 @@ import {
 } from "@/components/tasks";
 import type { EnhancedTask, TaskOperations } from "@/components/tasks/task-types";
 import { INITIAL_TASKS } from "@/components/tasks/mock-tasks";
-import type { TaskPriority, TaskStatus } from "@/types";
+import type { Task, TaskPriority, TaskStatus } from "@/types";
 
 /* ───── filter types ───── */
 
@@ -37,9 +38,44 @@ const fadeUp = {
 
 /* ───── page component ───── */
 
+// Map Supabase Task → EnhancedTask for UI compatibility
+function taskToEnhanced(t: Task): EnhancedTask {
+  const meta = (t.metadata ?? {}) as Record<string, unknown>;
+  return {
+    id: t.id,
+    title: t.title,
+    description: t.description ?? "",
+    status: t.status,
+    priority: t.priority,
+    assigned_agent_id: t.assigned_agent_id ?? "",
+    department_id: t.department_id ?? "",
+    deadline: t.due_date,
+    created_at: t.created_at,
+    last_viewed_by: (meta.last_viewed_by as string) ?? null,
+    last_viewed_at: (meta.last_viewed_at as string) ?? null,
+    sign_off_required: t.sign_off_required,
+    signed_off_by: t.signed_off_by,
+    signed_off_at: t.signed_off_at,
+    tags: t.tags ?? [],
+    subtasks: (meta.subtasks as EnhancedTask["subtasks"]) ?? [],
+    comments: (meta.comments as EnhancedTask["comments"]) ?? [],
+  };
+}
+
 export default function TaskBoardPage() {
-  // Task state (mutable copy of initial immutable data)
-  const [tasks, setTasks] = useState<readonly EnhancedTask[]>(INITIAL_TASKS);
+  // Real data from Supabase
+  const { data: dbTasks = [], isLoading: tasksLoading } = useTasks();
+  const { data: agents = [] } = useAgents();
+  const { data: departments = [] } = useDepartments();
+  const createTaskMutation = useCreateTask();
+  const updateTaskMutation = useUpdateTask();
+  const deleteTaskMutation = useDeleteTask();
+
+  // Map DB tasks to EnhancedTask format, fallback to mock if DB is empty
+  const tasks: readonly EnhancedTask[] = useMemo(() => {
+    if (dbTasks.length > 0) return dbTasks.map(taskToEnhanced);
+    return INITIAL_TASKS;
+  }, [dbTasks]);
 
   // Filters
   const [filterDept, setFilterDept] = useState<FilterDept>("all");
@@ -53,51 +89,53 @@ export default function TaskBoardPage() {
   // Add task dialog
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
-  /* ─── immutable task operations ─── */
+  /* ─── task operations (persist to Supabase) ─── */
 
   const addTask = useCallback((task: EnhancedTask) => {
-    setTasks((prev) => [...prev, task]);
-  }, []);
+    createTaskMutation.mutate({
+      title: task.title,
+      description: task.description || null,
+      status: task.status,
+      priority: task.priority,
+      assigned_agent_id: task.assigned_agent_id || null,
+      department_id: task.department_id || null,
+      due_date: task.deadline,
+      tags: [...task.tags],
+      sign_off_required: task.sign_off_required,
+      metadata: { subtasks: task.subtasks, comments: task.comments },
+    });
+  }, [createTaskMutation]);
 
   const updateTask = useCallback(
     (id: string, updates: Partial<EnhancedTask>) => {
-      setTasks((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
-      );
-      // Also update the drawer task if it is the one being edited
-      setDrawerTask((prev) =>
-        prev && prev.id === id ? { ...prev, ...updates } : prev
-      );
+      const dbUpdates: Partial<Task> & { id: string } = { id };
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.description !== undefined) dbUpdates.description = updates.description || null;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
+      if (updates.deadline !== undefined) dbUpdates.due_date = updates.deadline;
+      if (updates.tags !== undefined) dbUpdates.tags = [...updates.tags];
+      updateTaskMutation.mutate(dbUpdates);
+      setDrawerTask((prev) => prev && prev.id === id ? { ...prev, ...updates } : prev);
     },
-    []
+    [updateTaskMutation]
   );
 
   const moveTask = useCallback((id: string, newStatus: TaskStatus) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: newStatus } : t))
-    );
-    setDrawerTask((prev) =>
-      prev && prev.id === id ? { ...prev, status: newStatus } : prev
-    );
-  }, []);
+    updateTaskMutation.mutate({ id, status: newStatus });
+    setDrawerTask((prev) => prev && prev.id === id ? { ...prev, status: newStatus } : prev);
+  }, [updateTaskMutation]);
 
   const deleteTask = useCallback((id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-  }, []);
+    deleteTaskMutation.mutate(id);
+  }, [deleteTaskMutation]);
 
   const viewTask = useCallback((id: string) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              last_viewed_by: "Lamin",
-              last_viewed_at: new Date().toISOString(),
-            }
-          : t
-      )
-    );
-  }, []);
+    updateTaskMutation.mutate({
+      id,
+      metadata: { last_viewed_by: "Lamin", last_viewed_at: new Date().toISOString() },
+    });
+  }, [updateTaskMutation]);
 
   const operations: TaskOperations = useMemo(
     () => ({ addTask, updateTask, moveTask, deleteTask, viewTask }),
@@ -109,12 +147,19 @@ export default function TaskBoardPage() {
   const handleOpenTask = useCallback(
     (task: EnhancedTask) => {
       viewTask(task.id);
-      // Get fresh copy from state
       setDrawerTask({ ...task, last_viewed_by: "Lamin", last_viewed_at: new Date().toISOString() });
       setDrawerOpen(true);
     },
     [viewTask]
   );
+
+  if (tasksLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--jarvis-accent)]" />
+      </div>
+    );
+  }
 
   /* ─── filtered tasks ─── */
 
@@ -188,7 +233,7 @@ export default function TaskBoardPage() {
           >
             <option value="all">All Departments</option>
             {departments.map((d) => (
-              <option key={d.slug} value={d.slug}>
+              <option key={d.slug} value={d.slug ?? d.id}>
                 {d.name}
               </option>
             ))}
@@ -214,11 +259,11 @@ export default function TaskBoardPage() {
             className={selectCls}
           >
             <option value="all">All Agents</option>
-            {assignedAgentIds.map((slug) => {
-              const agent = getAgentBySlug(slug);
+            {assignedAgentIds.map((agentId) => {
+              const agent = agents.find((a) => a.id === agentId);
               return (
-                <option key={slug} value={slug}>
-                  {agent?.name ?? slug}
+                <option key={agentId} value={agentId}>
+                  {agent?.name ?? agentId}
                 </option>
               );
             })}

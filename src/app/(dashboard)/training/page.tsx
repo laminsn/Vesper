@@ -109,8 +109,7 @@ function TemplateCard({ template }: { readonly template: AgentTemplate }) {
           {template.defaultZone}
         </span>
         <button
-          disabled
-          className="flex items-center gap-1.5 rounded-md border border-[var(--jarvis-accent)] bg-transparent px-3 py-1.5 text-xs font-medium text-[var(--jarvis-accent)] opacity-60 cursor-not-allowed transition-colors"
+          className="flex items-center gap-1.5 rounded-md border border-[var(--jarvis-accent)] bg-transparent px-3 py-1.5 text-xs font-medium text-[var(--jarvis-accent)] transition-colors hover:bg-[var(--jarvis-accent)]/10"
         >
           <Rocket className="h-3 w-3" />
           Deploy Agent

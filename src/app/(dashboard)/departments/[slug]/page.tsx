@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { useAgents, useAgentsByDepartment } from "@/hooks/use-agents";
 import { useDepartment } from "@/hooks/use-departments";
 import { useKpis } from "@/hooks/use-kpis";
+import { useDirectives } from "@/hooks/use-directives";
 import {
   DepartmentBadge,
   GlowCard,
@@ -103,6 +104,16 @@ export default function DepartmentDashboardPage() {
   const { data: deptAgents = [], isLoading: agentsLoading } = useAgentsByDepartment(slug);
   const { data: allAgents = [] } = useAgents();
   const { data: supabaseKpis = [] } = useKpis(department?.id);
+  const { data: allDirectives = [] } = useDirectives();
+
+  // Filter directives for this department's agents
+  const deptDirectives = useMemo(() => {
+    if (!deptAgents.length) return [];
+    const agentIds = new Set(deptAgents.map((a) => a.id));
+    return allDirectives
+      .filter((d) => d.target_agent_id && agentIds.has(d.target_agent_id))
+      .slice(0, 5);
+  }, [allDirectives, deptAgents]);
 
   const director = useMemo(
     () =>
@@ -224,18 +235,34 @@ export default function DepartmentDashboardPage() {
         </GlowCard>
       </motion.div>
 
-      {/* Activity Placeholder */}
+      {/* Recent Activity */}
       <motion.div variants={fadeUp}>
         <GlowCard className="p-5" hover={false}>
-          <h2 className="heading-mono mb-4">Recent Activity</h2>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="h-12 w-12 rounded-full bg-[var(--jarvis-bg-tertiary)] flex items-center justify-center mb-3">
-              <span className="text-[var(--jarvis-text-muted)] text-lg">--</span>
-            </div>
-            <p className="text-sm text-[var(--jarvis-text-muted)]">
-              No recent activity
+          <h2 className="heading-mono mb-4">Recent Activity ({deptDirectives.length})</h2>
+          {deptDirectives.length === 0 ? (
+            <p className="text-sm text-[var(--jarvis-text-muted)] text-center py-6">
+              No recent directives for this department
             </p>
-          </div>
+          ) : (
+            <div className="space-y-2">
+              {deptDirectives.map((d) => {
+                const agent = deptAgents.find((a) => a.id === d.target_agent_id);
+                return (
+                  <div key={d.id} className="flex items-start gap-3 rounded-lg bg-[var(--jarvis-bg-tertiary)] px-4 py-3">
+                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: d.status === "completed" ? "var(--jarvis-success)" : d.status === "pending" ? "var(--jarvis-warning)" : "var(--jarvis-accent-2)" }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-[var(--jarvis-text-primary)]">
+                        <span className="font-medium">{agent?.name ?? "Agent"}</span>: {d.instruction.slice(0, 80)}{d.instruction.length > 80 ? "..." : ""}
+                      </p>
+                      <p className="text-[10px] text-[var(--jarvis-text-muted)] mt-0.5">
+                        {d.status} &middot; {d.priority} &middot; {new Date(d.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </GlowCard>
       </motion.div>
     </motion.div>
