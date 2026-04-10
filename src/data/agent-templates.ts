@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-// AI Army Vesper — Agent Templates
+// Vesper — Agent Templates
 // Ported from Dr. Claw Medical with Vesper-adapted interface
 // ═══════════════════════════════════════════════════
 

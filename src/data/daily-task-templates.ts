@@ -1,5 +1,5 @@
 /**
- * Daily Task Templates — operational backbone of the HHCC AI Army Vesper.
+ * Daily Task Templates — operational backbone of the HHCC Vesper.
  *
  * 108 templates across 9 departments + universal workflows covering every
  * daily operational touchpoint: email, DMs, calendar, meetings, KPIs,

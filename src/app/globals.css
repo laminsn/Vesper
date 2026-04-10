@@ -73,7 +73,7 @@
 }
 
 /* ═══════════════════════════════════════════════════
-   LIGHT THEME — AI Army Brand
+   LIGHT THEME — Vesper Brand
    ═══════════════════════════════════════════════════ */
 
 html.light {
@@ -83,7 +83,7 @@ html.light {
   --jarvis-bg-tertiary: #F1F5F9;
   --jarvis-bg-elevated: #E2E8F0;
 
-  /* Accent Colors — AI Army Ember Orange + Purple */
+  /* Accent Colors — Vesper Ember Orange + Purple */
   --jarvis-accent: #FF6B35;
   --jarvis-accent-dim: rgba(255, 107, 53, 0.5);
   --jarvis-accent-2: #6C5CE7;

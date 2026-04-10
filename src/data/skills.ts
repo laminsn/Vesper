@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-// AI Army Vesper — Skills Library
+// Vesper — Skills Library
 // Ported from Dr. Claw Medical — 30+ skills across 11 categories
 // ═══════════════════════════════════════════════════
 

@@ -219,14 +219,16 @@ export default function IntegrationsPage() {
 
   const filtered = useMemo(() => {
     const lower = searchQuery.toLowerCase();
-    return catalogIntegrations.filter((i) => {
-      const matchesCategory = activeCategory === "all" || i.category === activeCategory;
-      const matchesSearch =
-        lower === "" ||
-        i.name.toLowerCase().includes(lower) ||
-        i.description.toLowerCase().includes(lower);
-      return matchesCategory && matchesSearch;
-    });
+    return [...catalogIntegrations]
+      .filter((i) => {
+        const matchesCategory = activeCategory === "all" || i.category === activeCategory;
+        const matchesSearch =
+          lower === "" ||
+          i.name.toLowerCase().includes(lower) ||
+          i.description.toLowerCase().includes(lower);
+        return matchesCategory && matchesSearch;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [activeCategory, searchQuery]);
 
   const categories = [ALL_CATEGORY, ...integrationCategories];

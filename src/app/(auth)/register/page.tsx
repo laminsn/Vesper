@@ -64,7 +64,7 @@ export default function RegisterPage() {
           Request Access
         </h2>
         <p className="text-sm text-[var(--jarvis-text-muted)]">
-          Create an account for AI Army Vesper
+          Create an account for Vesper
         </p>
       </div>
 

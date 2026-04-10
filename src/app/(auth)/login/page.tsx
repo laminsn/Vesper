@@ -52,7 +52,7 @@ export default function LoginPage() {
           Sign in to Vesper
         </h2>
         <p className="text-sm text-[var(--jarvis-text-muted)]">
-          Access the AI Army Vesper
+          Access Vesper
         </p>
       </div>
 

@@ -10,6 +10,8 @@ interface UiState {
   readonly theme: Theme;
   readonly setTheme: (theme: Theme) => void;
   readonly toggleTheme: () => void;
+  readonly voiceModeEnabled: boolean;
+  readonly toggleVoiceMode: () => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -22,4 +24,7 @@ export const useUiStore = create<UiState>((set) => ({
   setTheme: (theme: Theme) => set({ theme }),
   toggleTheme: () =>
     set((state) => ({ theme: state.theme === "dark" ? "light" : "dark" })),
+  voiceModeEnabled: false,
+  toggleVoiceMode: () =>
+    set((state) => ({ voiceModeEnabled: !state.voiceModeEnabled })),
 }));

@@ -24,7 +24,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         {/* Logo and tagline */}
         <div className="flex flex-col items-center gap-3">
           <h1 className="heading-display text-4xl tracking-tight">
-            <span className="text-gradient">AI Army Vesper</span>
+            <span className="text-gradient">Vesper</span>
           </h1>
           <p className="text-sm text-[var(--jarvis-text-secondary)]">
             AI Agent Workforce Management Platform

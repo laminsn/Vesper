@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-// AI Army Vesper — Integrations Catalog
+// Vesper — Integrations Catalog
 // Ported from Dr. Claw Medical — 40+ integrations
 // ═══════════════════════════════════════════════════
 

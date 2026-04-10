@@ -22,7 +22,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Army Vesper",
+  title: "Vesper",
   description:
     "AI Agent Workforce Management Platform",
 };

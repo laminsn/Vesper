@@ -1,5 +1,5 @@
 /**
- * Security utilities for the AI Army Vesper platform.
+ * Security utilities for the Vesper platform.
  * Provides input sanitization, PHI detection, session guards,
  * rate limiting, CSRF protection, zone enforcement, and distress detection.
  */

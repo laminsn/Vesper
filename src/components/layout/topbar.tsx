@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Bell, User, Settings, LogOut } from "lucide-react";
+import { Search, Bell, User, Settings, LogOut, Mic } from "lucide-react";
+import { toast } from "sonner";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { VoiceModeButton } from "@/components/layout/voice-mode";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { useAuth } from "@/providers/auth-provider";
@@ -13,6 +15,8 @@ export function Topbar() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const setGlobalSearchOpen = useUiStore((s) => s.setGlobalSearchOpen);
+  const voiceModeEnabled = useUiStore((s) => s.voiceModeEnabled);
+  const toggleVoiceMode = useUiStore((s) => s.toggleVoiceMode);
   const { t } = useI18n();
 
   const handleSearchOpen = useCallback(() => {
@@ -50,7 +54,7 @@ export function Topbar() {
       {/* Left: page title area */}
       <div className="flex items-center gap-2">
         <span className="heading-display text-sm text-[var(--jarvis-text-primary)]">
-          AI Army Vesper
+          Vesper
         </span>
       </div>
 
@@ -71,6 +75,22 @@ export function Topbar() {
 
       {/* Right: actions */}
       <div className="flex items-center gap-3">
+        {/* Voice Mode */}
+        <VoiceModeButton
+          enabled={voiceModeEnabled}
+          onTranscript={(text) => {
+            // Global voice command — route to Command Station
+            toast.info(`Voice: "${text}"`, { description: "Navigate to Command Station to issue voice directives" });
+          }}
+        />
+        <button
+          onClick={toggleVoiceMode}
+          className={`rounded-lg p-2 text-[var(--jarvis-text-muted)] transition-colors hover:bg-[var(--jarvis-bg-tertiary)] ${voiceModeEnabled ? "text-red-400" : ""}`}
+          title={voiceModeEnabled ? "Disable Voice Mode" : "Enable Voice Mode"}
+        >
+          <Mic className="h-4 w-4" />
+        </button>
+
         {/* Theme toggle */}
         <ThemeToggle />
 
