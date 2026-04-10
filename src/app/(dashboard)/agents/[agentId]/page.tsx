@@ -56,14 +56,14 @@ export default function AgentDetailPage() {
   );
 
   const directReports = useMemo(
-    () => (agent ? allAgents.filter((a) => a.parent_agent_id === agent.slug) : []),
+    () => (agent ? allAgents.filter((a) => a.parent_agent_id === agent.id) : []),
     [agent, allAgents]
   );
 
   const parentAgent = useMemo(
     () =>
       agent?.parent_agent_id
-        ? allAgents.find((a) => a.slug === agent.parent_agent_id) ?? null
+        ? allAgents.find((a) => a.id === agent.parent_agent_id) ?? null
         : null,
     [agent, allAgents]
   );

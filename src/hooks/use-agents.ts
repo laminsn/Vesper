@@ -2,19 +2,25 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/org-store";
 import type { Agent, AgentStatus } from "@/types";
 
 export function useAgents() {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
 
   return useQuery<Agent[]>({
-    queryKey: ["agents"],
+    queryKey: ["agents", orgId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("agents")
         .select("*")
         .order("department")
         .order("name");
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -23,15 +29,19 @@ export function useAgents() {
 
 export function useAgent(slug: string) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
 
   return useQuery<Agent>({
-    queryKey: ["agents", slug],
+    queryKey: ["agents", orgId, slug],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("agents")
         .select("*")
-        .eq("slug", slug)
-        .single();
+        .eq("slug", slug);
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
+      const { data, error } = await query.single();
       if (error) throw error;
       return data;
     },
@@ -41,15 +51,20 @@ export function useAgent(slug: string) {
 
 export function useAgentsByDepartment(dept: string) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
 
   return useQuery<Agent[]>({
-    queryKey: ["agents", "department", dept],
+    queryKey: ["agents", orgId, "department", dept],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("agents")
         .select("*")
         .eq("department", dept)
         .order("name");
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },

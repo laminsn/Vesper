@@ -182,7 +182,7 @@ function buildTree(agentList: Agent[]): TreeNode | null {
 
   function buildSubtree(agent: Agent): TreeNode {
     const children = agentList
-      .filter((a) => a.parent_agent_id === agent.slug)
+      .filter((a) => a.parent_agent_id === agent.id)
       .map((child) => buildSubtree(child));
     return { agent, children };
   }

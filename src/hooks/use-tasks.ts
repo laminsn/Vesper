@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/org-store";
 import type { Task, TaskStatus } from "@/types";
 
 interface TaskFilters {
@@ -12,15 +13,19 @@ interface TaskFilters {
 
 export function useTasks(filters?: TaskFilters) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
 
   return useQuery<Task[]>({
-    queryKey: ["tasks", filters],
+    queryKey: ["tasks", orgId, filters],
     queryFn: async () => {
       let query = supabase
         .from("tasks")
         .select("*")
         .order("created_at", { ascending: false });
 
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
       if (filters?.status) {
         query = query.eq("status", filters.status);
       }
@@ -40,15 +45,19 @@ export function useTasks(filters?: TaskFilters) {
 
 export function useTask(id: string) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
 
   return useQuery<Task>({
-    queryKey: ["tasks", id],
+    queryKey: ["tasks", orgId, id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("tasks")
         .select("*")
-        .eq("id", id)
-        .single();
+        .eq("id", id);
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
+      const { data, error } = await query.single();
       if (error) throw error;
       return data;
     },

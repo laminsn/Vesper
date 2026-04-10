@@ -112,6 +112,34 @@ function formatTimestamp(iso: string): string {
 
 function WorkflowCard({ workflow }: { readonly workflow: WorkflowTemplate }) {
   const [isActive, setIsActive] = useState(workflow.active);
+  const [isRunning, setIsRunning] = useState(false);
+  const [runResult, setRunResult] = useState<"success" | "error" | null>(null);
+
+  const handleRunNow = async () => {
+    setIsRunning(true);
+    setRunResult(null);
+    try {
+      const res = await fetch("/api/n8n/execute", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-vesper-webhook-secret": "vesper-dev-secret",
+        },
+        body: JSON.stringify({
+          flowId: "n8n-daily-briefing",
+          agentSlug: "quill-journalist",
+          agentName: workflow.name,
+          payload: { playbookId: workflow.id, playbookName: workflow.name },
+        }),
+      });
+      setRunResult(res.ok ? "success" : "error");
+    } catch {
+      setRunResult("error");
+    } finally {
+      setIsRunning(false);
+      setTimeout(() => setRunResult(null), 3000);
+    }
+  };
 
   return (
     <GlowCard
@@ -168,26 +196,61 @@ function WorkflowCard({ workflow }: { readonly workflow: WorkflowTemplate }) {
 
       {/* Actions */}
       <div className="flex items-center justify-between pt-2 border-t border-[var(--jarvis-border)]">
-        <button
-          onClick={() => setIsActive((prev) => !prev)}
-          className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
-            isActive
-              ? "border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
-              : "border-[var(--jarvis-accent)] text-[var(--jarvis-accent)] hover:bg-[var(--jarvis-accent)]/10"
-          }`}
-        >
-          {isActive ? (
-            <>
-              <Pause className="h-3 w-3" />
-              Deactivate
-            </>
-          ) : (
-            <>
-              <Play className="h-3 w-3" />
-              Activate
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsActive((prev) => !prev)}
+            className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+              isActive
+                ? "border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                : "border-[var(--jarvis-accent)] text-[var(--jarvis-accent)] hover:bg-[var(--jarvis-accent)]/10"
+            }`}
+          >
+            {isActive ? (
+              <>
+                <Pause className="h-3 w-3" />
+                Deactivate
+              </>
+            ) : (
+              <>
+                <Play className="h-3 w-3" />
+                Activate
+              </>
+            )}
+          </button>
+          <button
+            onClick={handleRunNow}
+            disabled={isRunning}
+            className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+              runResult === "success"
+                ? "border-emerald-500/40 text-emerald-400"
+                : runResult === "error"
+                ? "border-red-500/40 text-red-400"
+                : "border-sky-500/40 text-sky-400 hover:bg-sky-500/10"
+            }`}
+          >
+            {isRunning ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Running...
+              </>
+            ) : runResult === "success" ? (
+              <>
+                <CheckCircle2 className="h-3 w-3" />
+                Sent
+              </>
+            ) : runResult === "error" ? (
+              <>
+                <XCircle className="h-3 w-3" />
+                Failed
+              </>
+            ) : (
+              <>
+                <Zap className="h-3 w-3" />
+                Run Now
+              </>
+            )}
+          </button>
+        </div>
         <button className="flex items-center gap-1.5 rounded-md border border-[var(--jarvis-border)] px-3 py-1.5 text-xs font-medium text-[var(--jarvis-text-secondary)] transition-colors hover:border-[var(--jarvis-border-strong)] hover:text-[var(--jarvis-text-primary)]">
           View Details
         </button>

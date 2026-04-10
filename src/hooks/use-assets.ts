@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/org-store";
 
 export interface Asset {
   readonly id: string;
@@ -27,10 +28,14 @@ export interface Asset {
 
 export function useAssets(filters?: { asset_type?: string; approval_status?: string }) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
   return useQuery<Asset[]>({
-    queryKey: ["assets", filters],
+    queryKey: ["assets", orgId, filters],
     queryFn: async () => {
       let query = supabase.from("assets").select("*").order("created_at", { ascending: false });
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
       if (filters?.asset_type) query = query.eq("asset_type", filters.asset_type);
       if (filters?.approval_status) query = query.eq("approval_status", filters.approval_status);
       const { data, error } = await query;

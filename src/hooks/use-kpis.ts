@@ -2,19 +2,24 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/org-store";
 import type { Kpi, KpiHistory } from "@/types";
 
 export function useKpis(departmentId?: string) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
 
   return useQuery<Kpi[]>({
-    queryKey: ["kpis", departmentId],
+    queryKey: ["kpis", orgId, departmentId],
     queryFn: async () => {
       let query = supabase
         .from("kpis")
         .select("*")
         .order("metric_name");
 
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
       if (departmentId) {
         query = query.eq("department_id", departmentId);
       }
@@ -28,15 +33,20 @@ export function useKpis(departmentId?: string) {
 
 export function useKpiHistory(kpiId: string) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
 
   return useQuery<KpiHistory[]>({
-    queryKey: ["kpi_history", kpiId],
+    queryKey: ["kpi_history", orgId, kpiId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("kpi_history")
         .select("*")
         .eq("kpi_id", kpiId)
         .order("recorded_at", { ascending: false });
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },

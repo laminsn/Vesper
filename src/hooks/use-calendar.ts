@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/org-store";
 
 export interface CalendarEvent {
   readonly id: string;
@@ -27,19 +28,24 @@ export interface CalendarEvent {
 
 export function useCalendarEvents(month?: string) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
   const now = month ? new Date(month + "-01T00:00:00") : new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
 
   return useQuery<CalendarEvent[]>({
-    queryKey: ["calendar_events", start, end],
+    queryKey: ["calendar_events", orgId, start, end],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("calendar_events")
         .select("*")
         .gte("start_time", start)
         .lte("start_time", end)
         .order("start_time");
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },
@@ -48,18 +54,23 @@ export function useCalendarEvents(month?: string) {
 
 export function useUpcomingEvents(limit: number = 10) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
   const now = new Date().toISOString();
 
   return useQuery<CalendarEvent[]>({
-    queryKey: ["calendar_events_upcoming", limit],
+    queryKey: ["calendar_events_upcoming", orgId, limit],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("calendar_events")
         .select("*")
         .gte("start_time", now)
         .eq("status", "scheduled")
         .order("start_time")
         .limit(limit);
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },

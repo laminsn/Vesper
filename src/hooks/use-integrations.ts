@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/org-store";
 import type {
   IntegrationRecord,
   IntegrationCategory,
@@ -15,15 +16,19 @@ interface IntegrationFilters {
 
 export function useIntegrations(filters?: IntegrationFilters) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
 
   return useQuery<IntegrationRecord[]>({
-    queryKey: ["integrations", filters],
+    queryKey: ["integrations", orgId, filters],
     queryFn: async () => {
       let query = supabase
         .from("integration_registry")
         .select("*")
         .order("display_name");
 
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
       if (filters?.category) {
         query = query.eq("category", filters.category);
       }

@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/org-store";
 
 export interface DailyReport {
   readonly id: string;
@@ -20,16 +21,21 @@ export interface DailyReport {
 
 export function useDailyReports(date?: string) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
   const targetDate = date ?? new Date().toISOString().split("T")[0];
 
   return useQuery<DailyReport[]>({
-    queryKey: ["daily_reports", targetDate],
+    queryKey: ["daily_reports", orgId, targetDate],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("daily_reports")
         .select("*")
         .eq("report_date", targetDate)
         .order("created_at", { ascending: false });
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },
@@ -38,18 +44,23 @@ export function useDailyReports(date?: string) {
 
 export function useAllRecentReports(days: number = 7) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
   const since = new Date();
   since.setDate(since.getDate() - days);
   const sinceStr = since.toISOString().split("T")[0];
 
   return useQuery<DailyReport[]>({
-    queryKey: ["daily_reports_recent", days],
+    queryKey: ["daily_reports_recent", orgId, days],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("daily_reports")
         .select("*")
         .gte("report_date", sinceStr)
         .order("created_at", { ascending: false });
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },

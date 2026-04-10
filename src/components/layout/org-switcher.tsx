@@ -1,54 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronsUpDown, Plus, Check, Building2 } from "lucide-react";
+import { ChevronsUpDown, Plus, Check, Building2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useOrgStore } from "@/stores/org-store";
 import { useI18n } from "@/providers/i18n-provider";
 import { useUiStore } from "@/stores/ui-store";
+import { useOrganizations } from "@/hooks/use-organizations";
+import { ALL_ORGS } from "@/data/organizations";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import type { OrgIndustry } from "@/types";
+import type { OrgIndustry, Organization } from "@/types";
 
-// ─── Mock Organizations ───────────────────────────────────────────────────────
+// ─── Org Display Config ──────────────────────────────────────────────────────
+// Color map for org badges (keyed by slug)
+const ORG_COLORS: Record<string, string> = Object.fromEntries(
+  ALL_ORGS.map((o) => [o.slug, o.color])
+);
 
-interface MockOrg {
+function getOrgColor(slug: string): string {
+  return ORG_COLORS[slug] ?? "#6b7280";
+}
+
+interface DisplayOrg {
   readonly id: string;
   readonly name: string;
   readonly slug: string;
   readonly industry: OrgIndustry;
   readonly hipaaMode: boolean;
-  readonly agentCount: number;
-  readonly status: "active" | "inactive";
   readonly color: string;
 }
-
-const MOCK_ORGS: readonly MockOrg[] = [
-  {
-    id: "org-hhcc",
-    name: "Happier Homes Comfort Care",
-    slug: "hhcc",
-    industry: "healthcare",
-    hipaaMode: true,
-    agentCount: 39,
-    status: "active",
-    color: "#06d6a0",
-  },
-  {
-    id: "org-ram",
-    name: "Rara Avis Marketing",
-    slug: "ram",
-    industry: "marketing",
-    hipaaMode: false,
-    agentCount: 48,
-    status: "active",
-    color: "#8b5cf6",
-  },
-] as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -78,11 +63,29 @@ export function OrgSwitcher() {
   const { currentOrgId, setCurrentOrg } = useOrgStore();
   const { t } = useI18n();
   const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed);
+  const { data: orgs, isLoading } = useOrganizations();
 
-  const activeOrg =
-    MOCK_ORGS.find((o) => o.id === currentOrgId) ?? MOCK_ORGS[0];
+  // Transform Supabase orgs into display orgs with colors
+  const displayOrgs: readonly DisplayOrg[] = useMemo(() => {
+    if (!orgs) return [];
+    return orgs.map((o) => ({
+      id: o.id,
+      name: o.name,
+      slug: o.slug,
+      industry: (o.industry ?? "other") as OrgIndustry,
+      hipaaMode: o.hipaa_mode,
+      color: getOrgColor(o.slug),
+    }));
+  }, [orgs]);
 
-  const handleSelectOrg = (org: MockOrg) => {
+  const activeOrg = displayOrgs.find((o) => o.id === currentOrgId) ?? displayOrgs[0];
+
+  // Auto-select first org if none selected and orgs loaded
+  if (!currentOrgId && activeOrg) {
+    setCurrentOrg(activeOrg.id, activeOrg.name, activeOrg.slug, activeOrg.hipaaMode);
+  }
+
+  const handleSelectOrg = (org: DisplayOrg) => {
     setCurrentOrg(org.id, org.name, org.slug, org.hipaaMode);
     setOpen(false);
   };
@@ -91,6 +94,14 @@ export function OrgSwitcher() {
     setOpen(false);
     router.push("/settings/upload-profile");
   };
+
+  if (isLoading || !activeOrg) {
+    return (
+      <div className="flex h-10 items-center justify-center">
+        <Loader2 className="h-4 w-4 animate-spin text-[var(--jarvis-text-muted)]" />
+      </div>
+    );
+  }
 
   if (sidebarCollapsed) {
     return (
@@ -110,7 +121,7 @@ export function OrgSwitcher() {
         </PopoverTrigger>
         <PopoverContent side="right" align="start" className="w-72 p-0">
           <OrgList
-            orgs={MOCK_ORGS}
+            orgs={displayOrgs}
             activeOrgId={activeOrg.id}
             onSelect={handleSelectOrg}
             onCreateNew={handleCreateNew}
@@ -144,7 +155,7 @@ export function OrgSwitcher() {
       </PopoverTrigger>
       <PopoverContent side="bottom" align="start" className="w-72 p-0">
         <OrgList
-          orgs={MOCK_ORGS}
+          orgs={displayOrgs}
           activeOrgId={activeOrg.id}
           onSelect={handleSelectOrg}
           onCreateNew={handleCreateNew}
@@ -158,9 +169,9 @@ export function OrgSwitcher() {
 // ─── Dropdown List ────────────────────────────────────────────────────────────
 
 interface OrgListProps {
-  readonly orgs: readonly MockOrg[];
+  readonly orgs: readonly DisplayOrg[];
   readonly activeOrgId: string;
-  readonly onSelect: (org: MockOrg) => void;
+  readonly onSelect: (org: DisplayOrg) => void;
   readonly onCreateNew: () => void;
   readonly t: (key: string) => string;
 }
@@ -202,25 +213,14 @@ function OrgList({ orgs, activeOrgId, onSelect, onCreateNew, t }: OrgListProps) 
                 </p>
                 <div className="flex items-center gap-2 text-[10px] text-[var(--jarvis-text-muted)]">
                   <span>{getIndustryLabel(org.industry)}</span>
-                  <span>·</span>
-                  <span>
-                    {org.agentCount} {t("common.agents")}
-                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {/* Status dot */}
                 <span
                   className="h-2 w-2 rounded-full"
                   style={{
-                    backgroundColor:
-                      org.status === "active"
-                        ? "var(--jarvis-success)"
-                        : "var(--jarvis-danger)",
-                    boxShadow:
-                      org.status === "active"
-                        ? "0 0 6px var(--jarvis-success)"
-                        : "0 0 6px var(--jarvis-danger)",
+                    backgroundColor: "var(--jarvis-success)",
+                    boxShadow: "0 0 6px var(--jarvis-success)",
                   }}
                 />
                 {isActive && (

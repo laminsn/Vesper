@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/org-store";
 
 export interface ContentVaultItem {
   readonly id: string;
@@ -33,15 +34,19 @@ interface VaultFilters {
 
 export function useContentVault(filters?: VaultFilters) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
 
   return useQuery<ContentVaultItem[]>({
-    queryKey: ["content_vault", filters],
+    queryKey: ["content_vault", orgId, filters],
     queryFn: async () => {
       let query = supabase
         .from("content_vault")
         .select("*")
         .order("created_at", { ascending: false });
 
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
       if (filters?.content_type) query = query.eq("content_type", filters.content_type);
       if (filters?.source_type) query = query.eq("source_type", filters.source_type);
       if (filters?.post_status) query = query.eq("post_status", filters.post_status);

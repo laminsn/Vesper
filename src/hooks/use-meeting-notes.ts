@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/org-store";
 
 export interface MeetingNote {
   readonly id: string;
@@ -16,16 +17,21 @@ export interface MeetingNote {
 
 export function useMeetingNotes(eventId?: string) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
 
   return useQuery<MeetingNote[]>({
-    queryKey: ["meeting_notes", eventId],
+    queryKey: ["meeting_notes", orgId, eventId],
     enabled: !!eventId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("meeting_notes")
         .select("*")
         .eq("event_id", eventId!)
         .order("created_at");
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },

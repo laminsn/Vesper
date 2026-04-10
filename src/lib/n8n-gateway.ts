@@ -332,6 +332,22 @@ function getDefaultFlowConfigs(): N8nFlowConfig[] {
       createdAt: now,
       updatedAt: now,
     },
+    {
+      id: "n8n-daily-briefing",
+      name: "Daily Executive Briefing",
+      webhookUrl: buildWebhookUrl("daily-briefing"),
+      description: "Journalist agent compiles overnight developments, key metrics, and action items into a daily briefing for the CEO.",
+      agentZone: "operations",
+      allowedAgentIds: ["quill-journalist", "scroll", "cronica", "ink", "herald"],
+      executionMode: "client-proxy",
+      requiresPhiScan: true,
+      requiresAuditLog: true,
+      isActive: true,
+      timeout: 60000,
+      retryPolicy: { maxRetries: 2, backoffMs: 2000 },
+      createdAt: now,
+      updatedAt: now,
+    },
   ];
 }
 

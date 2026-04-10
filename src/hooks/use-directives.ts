@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/org-store";
 import type { Directive, DirectiveStatus } from "@/types";
 
 interface DirectiveFilters {
@@ -11,15 +12,19 @@ interface DirectiveFilters {
 
 export function useDirectives(filters?: DirectiveFilters) {
   const supabase = createClient();
+  const orgId = useOrgStore((s) => s.currentOrgId);
 
   return useQuery<Directive[]>({
-    queryKey: ["directives", filters],
+    queryKey: ["directives", orgId, filters],
     queryFn: async () => {
       let query = supabase
         .from("directives")
         .select("*")
         .order("created_at", { ascending: false });
 
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
       if (filters?.status) {
         query = query.eq("status", filters.status);
       }
