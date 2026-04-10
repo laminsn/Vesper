@@ -1,347 +1,305 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import Link from "next/link";
 import {
-  Settings,
-  UserPlus,
-  Database,
-  Workflow,
-  BookOpen,
-  Upload,
-  Table2,
-  Send,
-  Globe,
-  Crown,
-  User,
+  User, Bell, Building2, Users, Shield, Save, Loader2,
+  Mail, Phone, MessageSquare, Send as SendIcon, Globe, Camera,
 } from "lucide-react";
+import { toast } from "sonner";
+import { usePreferences, useUpdatePreferences } from "@/hooks/use-preferences";
+import { useAuth } from "@/providers/auth-provider";
 import { GlowCard } from "@/components/jarvis";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
-// ─── Animations ────────────────────────────────────────────────────────────────
+const fadeUp = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
-const stagger = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
-};
-
-// ─── Data ──────────────────────────────────────────────────────────────────────
-
-interface TeamMember {
-  readonly name: string;
-  readonly role: string;
-  readonly email: string;
-  readonly icon: typeof Crown;
-}
-
-const TEAM_MEMBERS: readonly TeamMember[] = [
-  { name: "Lamin Ngobeh", role: "Owner", email: "lamin@hhcc.com", icon: Crown },
-  { name: "Terrell Alston", role: "Co-founder", email: "terrell@hhcc.com", icon: User },
-] as const;
-
-interface Integration {
-  readonly id: string;
-  readonly name: string;
-  readonly description: string;
-  readonly icon: typeof Database;
-  readonly connected: boolean;
-  readonly color: string;
-}
-
-const INTEGRATIONS: readonly Integration[] = [
-  { id: "supabase", name: "Supabase", description: "Database & Auth", icon: Database, connected: false, color: "#3ecf8e" },
-  { id: "n8n", name: "n8n", description: "Workflow Automation", icon: Workflow, connected: false, color: "#ff6d5a" },
-  { id: "ghl", name: "GoHighLevel", description: "CRM & Marketing", icon: Globe, connected: false, color: "#4285f4" },
-  { id: "notion", name: "Notion", description: "Knowledge Base", icon: BookOpen, connected: false, color: "#ffffff" },
-  { id: "airtable", name: "Airtable", description: "Data Management", icon: Table2, connected: false, color: "#fcb400" },
-  { id: "telegram", name: "Telegram", description: "Bot Communication", icon: Send, connected: false, color: "#0088cc" },
-] as const;
-
-// ─── Page ──────────────────────────────────────────────────────────────────────
+const TIMEZONES = [
+  "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+  "America/Sao_Paulo", "Europe/London", "Europe/Berlin", "Asia/Tokyo", "UTC",
+];
 
 export default function SettingsPage() {
-  const [inviteOpen, setInviteOpen] = useState(false);
+  const { user, role } = useAuth();
+  const { data: prefs, isLoading } = usePreferences();
+  const updatePrefs = useUpdatePreferences();
+  const isOwner = role === "owner" || role === "cofounder";
+
+  const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [phone, setPhone] = useState("");
+  const [timezone, setTimezone] = useState("America/New_York");
+  const [language, setLanguage] = useState("en");
+  const [channels, setChannels] = useState({ app: true, email: false, whatsapp: false, telegram: false, slack: false });
+  const [notifEmail, setNotifEmail] = useState("");
+  const [whatsappPhone, setWhatsappPhone] = useState("");
+  const [telegramChatId, setTelegramChatId] = useState("");
+  const [slackWebhook, setSlackWebhook] = useState("");
+  const [notifTypes, setNotifTypes] = useState<Record<string, boolean>>({
+    sla_warnings: true, task_completions: true, directive_updates: true,
+    daily_reports: true, agent_status: true, hipaa_alerts: true,
+    playbook_executions: true, financial_reports: false,
+  });
+
+  useEffect(() => {
+    if (!prefs) return;
+    setDisplayName(prefs.display_name ?? "");
+    setAvatarUrl(prefs.avatar_url ?? "");
+    setPhone(prefs.phone ?? "");
+    setTimezone(prefs.timezone);
+    setLanguage(prefs.language);
+    if (prefs.notification_channels) setChannels(prefs.notification_channels as typeof channels);
+    setNotifEmail(prefs.notification_email ?? "");
+    setWhatsappPhone(prefs.whatsapp_phone ?? "");
+    setTelegramChatId(prefs.telegram_chat_id ?? "");
+    setSlackWebhook(prefs.slack_webhook_url ?? "");
+    if (prefs.notification_types) setNotifTypes(prefs.notification_types as Record<string, boolean>);
+  }, [prefs]);
+
+  const handleSaveProfile = async () => {
+    try {
+      await updatePrefs.mutateAsync({ display_name: displayName, avatar_url: avatarUrl || null, phone: phone || null, timezone, language });
+      toast.success("Profile saved");
+    } catch { toast.error("Failed to save"); }
+  };
+
+  const handleSaveNotifications = async () => {
+    try {
+      await updatePrefs.mutateAsync({
+        notification_channels: channels, notification_email: notifEmail || null,
+        whatsapp_phone: whatsappPhone || null, telegram_chat_id: telegramChatId || null,
+        slack_webhook_url: slackWebhook || null, notification_types: notifTypes,
+      });
+      toast.success("Notification preferences saved");
+    } catch { toast.error("Failed to save"); }
+  };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-[var(--jarvis-accent)]" /></div>;
+  }
 
   return (
-    <motion.div
-      className="space-y-6"
-      variants={stagger}
-      initial="hidden"
-      animate="show"
-    >
-      {/* Header */}
+    <motion.div className="space-y-6 max-w-4xl" initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.06 } } }}>
       <motion.div variants={fadeUp}>
-        <h1 className="heading-display text-3xl text-[var(--jarvis-text-primary)]">
-          Settings
-        </h1>
+        <h1 className="heading-display text-3xl text-[var(--jarvis-text-primary)]">Settings</h1>
+        <p className="text-sm text-[var(--jarvis-text-muted)] mt-1">Manage your profile, notifications, and company settings</p>
       </motion.div>
 
-      {/* Tabs */}
-      <motion.div variants={fadeUp}>
-        <Tabs defaultValue="general">
-          <TabsList>
-            <TabsTrigger value="general" className="gap-1.5">
-              <Settings className="h-3.5 w-3.5" />
-              General
-            </TabsTrigger>
-            <TabsTrigger value="team" className="gap-1.5">
-              <User className="h-3.5 w-3.5" />
-              Team
-            </TabsTrigger>
-            <TabsTrigger value="integrations" className="gap-1.5">
-              <Workflow className="h-3.5 w-3.5" />
-              Integrations
-            </TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="profile">
+        <TabsList className="bg-[var(--jarvis-bg-tertiary)] border border-[var(--jarvis-border)]">
+          <TabsTrigger value="profile" className="text-xs gap-1"><User className="h-3 w-3" /> Profile</TabsTrigger>
+          <TabsTrigger value="notifications" className="text-xs gap-1"><Bell className="h-3 w-3" /> Notifications</TabsTrigger>
+          <TabsTrigger value="company" className="text-xs gap-1"><Building2 className="h-3 w-3" /> Company</TabsTrigger>
+          <TabsTrigger value="team" className="text-xs gap-1"><Users className="h-3 w-3" /> Team</TabsTrigger>
+          <TabsTrigger value="security" className="text-xs gap-1"><Shield className="h-3 w-3" /> Security</TabsTrigger>
+        </TabsList>
 
-          {/* General Tab */}
-          <TabsContent value="general">
-            <div className="mt-4 max-w-xl space-y-6">
-              <GlowCard className="p-5" hover={false}>
-                <h3 className="heading-mono mb-4">Organization</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Organization Name</Label>
-                    <Input
-                      value="Happier Homes Comfort Care"
-                      readOnly
-                      className="opacity-70"
-                    />
+        {/* PROFILE */}
+        <TabsContent value="profile" className="mt-4">
+          <GlowCard className="p-6" hover={false}>
+            <h2 className="heading-mono mb-4">Personal Information</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2 flex items-center gap-4">
+                <div className="relative">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-[var(--jarvis-border)] bg-[var(--jarvis-bg-tertiary)] overflow-hidden">
+                    {avatarUrl ? <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" /> : <User className="h-8 w-8 text-[var(--jarvis-text-muted)]" />}
                   </div>
-                  <div className="space-y-2">
-                    <Label>Dashboard Theme</Label>
-                    <Input
-                      value="JARVIS Dark"
-                      readOnly
-                      className="opacity-70"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Timezone</Label>
-                    <Input
-                      value="America/New_York"
-                      readOnly
-                      className="opacity-70"
-                    />
-                  </div>
+                  <Camera className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-[var(--jarvis-accent)] p-1 text-[var(--jarvis-bg-primary)]" />
                 </div>
-              </GlowCard>
-
-              {/* Upload Profile Link */}
-              <GlowCard className="p-5" hover={false}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="heading-mono mb-1">Upload Organization Profile</h3>
-                    <p className="text-xs text-[var(--jarvis-text-muted)]">
-                      Import a new AI agent workforce structure from a file or template
-                    </p>
-                  </div>
-                  <Link href="/settings/upload-profile">
-                    <Button size="sm">
-                      <Upload className="h-4 w-4" />
-                      Upload Profile
-                    </Button>
-                  </Link>
+                <div className="flex-1">
+                  <Label className="text-xs text-[var(--jarvis-text-secondary)]">Avatar URL</Label>
+                  <Input value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://..." className="mt-1 bg-[var(--jarvis-bg-tertiary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-primary)]" />
                 </div>
-              </GlowCard>
+              </div>
+              <div><Label className="text-xs text-[var(--jarvis-text-secondary)]">Display Name</Label><Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your name" className="mt-1 bg-[var(--jarvis-bg-tertiary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-primary)]" /></div>
+              <div><Label className="text-xs text-[var(--jarvis-text-secondary)]">Email</Label><Input value={user?.email ?? ""} disabled className="mt-1 bg-[var(--jarvis-bg-tertiary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-muted)]" /></div>
+              <div><Label className="text-xs text-[var(--jarvis-text-secondary)]">Phone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" className="mt-1 bg-[var(--jarvis-bg-tertiary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-primary)]" /></div>
+              <div>
+                <Label className="text-xs text-[var(--jarvis-text-secondary)]">Timezone</Label>
+                <Select value={timezone} onValueChange={setTimezone}>
+                  <SelectTrigger className="mt-1 bg-[var(--jarvis-bg-tertiary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-primary)]"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[var(--jarvis-bg-secondary)] border-[var(--jarvis-border)]">{TIMEZONES.map((tz) => <SelectItem key={tz} value={tz} className="text-[var(--jarvis-text-primary)]">{tz}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-[var(--jarvis-text-secondary)]">Language</Label>
+                <Select value={language} onValueChange={setLanguage}>
+                  <SelectTrigger className="mt-1 bg-[var(--jarvis-bg-tertiary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-primary)]"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[var(--jarvis-bg-secondary)] border-[var(--jarvis-border)]">
+                    <SelectItem value="en" className="text-[var(--jarvis-text-primary)]">English</SelectItem>
+                    <SelectItem value="es" className="text-[var(--jarvis-text-primary)]">Español</SelectItem>
+                    <SelectItem value="pt" className="text-[var(--jarvis-text-primary)]">Português</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </TabsContent>
+            <div className="mt-6 flex justify-end">
+              <Button onClick={handleSaveProfile} disabled={updatePrefs.isPending} className="bg-[var(--jarvis-accent)] text-[var(--jarvis-bg-primary)]">
+                {updatePrefs.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />} Save Profile
+              </Button>
+            </div>
+          </GlowCard>
+        </TabsContent>
 
-          {/* Team Tab */}
-          <TabsContent value="team">
-            <div className="mt-4 space-y-4">
-              <GlowCard className="p-5" hover={false}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="heading-mono">Team Members</h3>
-                  <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm">
-                        <UserPlus className="h-4 w-4" />
-                        Invite Team Member
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Invite Team Member</DialogTitle>
-                        <DialogDescription>
-                          Send an invitation to join the HHCC Command Center.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-2">
-                        <div className="space-y-2">
-                          <Label>Email Address</Label>
-                          <Input
-                            type="email"
-                            placeholder="name@example.com"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Role</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select role..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="cofounder">Co-founder</SelectItem>
-                              <SelectItem value="staff">Staff</SelectItem>
-                              <SelectItem value="readonly">Read-only</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setInviteOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button onClick={() => setInviteOpen(false)}>
-                          <Send className="h-4 w-4" />
-                          Send Invite
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+        {/* NOTIFICATIONS */}
+        <TabsContent value="notifications" className="mt-4 space-y-4">
+          <GlowCard className="p-6" hover={false}>
+            <h2 className="heading-mono mb-2">Delivery Channels</h2>
+            <p className="text-xs text-[var(--jarvis-text-muted)] mb-4">Choose how you receive updates from Vesper</p>
+            <div className="space-y-3">
+              {[
+                { key: "app" as const, label: "In-App", desc: "Notifications in Vesper dashboard", icon: Globe, color: "text-[var(--jarvis-accent)]" },
+                { key: "email" as const, label: "Email", desc: "Receive updates via email", icon: Mail, color: "text-blue-400", field: { value: notifEmail, set: setNotifEmail, placeholder: "your@email.com" } },
+                { key: "whatsapp" as const, label: "WhatsApp", desc: "Receive updates via WhatsApp", icon: MessageSquare, color: "text-green-400", field: { value: whatsappPhone, set: setWhatsappPhone, placeholder: "+1234567890" } },
+                { key: "telegram" as const, label: "Telegram", desc: "Receive updates via Telegram bot", icon: SendIcon, color: "text-blue-400", field: { value: telegramChatId, set: setTelegramChatId, placeholder: "Chat ID" } },
+                { key: "slack" as const, label: "Slack", desc: "Receive updates in Slack channel", icon: MessageSquare, color: "text-purple-400", field: { value: slackWebhook, set: setSlackWebhook, placeholder: "https://hooks.slack.com/..." } },
+              ].map(({ key, label, desc, icon: Icon, color, field }) => (
+                <div key={key} className="rounded-lg bg-[var(--jarvis-bg-tertiary)] px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Icon className={`h-4 w-4 ${color}`} />
+                      <div><p className="text-sm text-[var(--jarvis-text-primary)]">{label}</p><p className="text-[10px] text-[var(--jarvis-text-muted)]">{desc}</p></div>
+                    </div>
+                    <Switch checked={channels[key]} onCheckedChange={(v) => setChannels({ ...channels, [key]: v })} />
+                  </div>
+                  {channels[key] && field && (
+                    <Input value={field.value} onChange={(e) => field.set(e.target.value)} placeholder={field.placeholder} className="bg-[var(--jarvis-bg-secondary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-primary)]" />
+                  )}
                 </div>
+              ))}
+            </div>
+          </GlowCard>
 
-                <div className="rounded-lg border border-[var(--jarvis-border)] overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-[var(--jarvis-border)] bg-[var(--jarvis-bg-tertiary)]">
-                        <th className="text-left px-4 py-2.5 text-xs font-medium text-[var(--jarvis-text-muted)] uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th className="text-left px-4 py-2.5 text-xs font-medium text-[var(--jarvis-text-muted)] uppercase tracking-wider">
-                          Role
-                        </th>
-                        <th className="text-left px-4 py-2.5 text-xs font-medium text-[var(--jarvis-text-muted)] uppercase tracking-wider">
-                          Email
-                        </th>
+          <GlowCard className="p-6" hover={false}>
+            <h2 className="heading-mono mb-4">Notification Types</h2>
+            <div className="space-y-2">
+              {Object.entries(notifTypes).map(([key, enabled]) => (
+                <div key={key} className="flex items-center justify-between rounded-lg bg-[var(--jarvis-bg-tertiary)] px-4 py-2.5">
+                  <span className="text-sm text-[var(--jarvis-text-primary)] capitalize">{key.replace(/_/g, " ")}</span>
+                  <Switch checked={enabled} onCheckedChange={(v) => setNotifTypes({ ...notifTypes, [key]: v })} />
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 flex justify-end">
+              <Button onClick={handleSaveNotifications} disabled={updatePrefs.isPending} className="bg-[var(--jarvis-accent)] text-[var(--jarvis-bg-primary)]">
+                {updatePrefs.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />} Save Notifications
+              </Button>
+            </div>
+          </GlowCard>
+        </TabsContent>
+
+        {/* COMPANY */}
+        <TabsContent value="company" className="mt-4">
+          <GlowCard className="p-6" hover={false}>
+            <h2 className="heading-mono mb-4">Company Profile</h2>
+            {isOwner ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div><Label className="text-xs text-[var(--jarvis-text-secondary)]">Company Name</Label><Input defaultValue="Happier Homes Comfort Care" className="mt-1 bg-[var(--jarvis-bg-tertiary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-primary)]" /></div>
+                <div>
+                  <Label className="text-xs text-[var(--jarvis-text-secondary)]">Industry</Label>
+                  <Select defaultValue="healthcare">
+                    <SelectTrigger className="mt-1 bg-[var(--jarvis-bg-tertiary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-primary)]"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-[var(--jarvis-bg-secondary)] border-[var(--jarvis-border)]">
+                      {["healthcare", "finance", "real_estate", "marketing", "education", "technology"].map((i) => (
+                        <SelectItem key={i} value={i} className="text-[var(--jarvis-text-primary)] capitalize">{i.replace("_", " ")}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label className="text-xs text-[var(--jarvis-text-secondary)]">Logo URL</Label><Input placeholder="https://..." className="mt-1 bg-[var(--jarvis-bg-tertiary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-primary)]" /></div>
+                <div className="flex items-center gap-4 rounded-lg bg-[var(--jarvis-bg-tertiary)] px-4 py-3">
+                  <div><p className="text-sm text-[var(--jarvis-text-primary)]">HIPAA Mode</p><p className="text-[10px] text-[var(--jarvis-text-muted)]">Enforce PHI rules for medical businesses</p></div>
+                  <Switch defaultChecked />
+                </div>
+                <div className="sm:col-span-2 flex justify-end"><Button className="bg-[var(--jarvis-accent)] text-[var(--jarvis-bg-primary)]"><Save className="h-4 w-4 mr-1" /> Save Company</Button></div>
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--jarvis-text-muted)]">Only the account owner can edit company settings.</p>
+            )}
+          </GlowCard>
+        </TabsContent>
+
+        {/* TEAM */}
+        <TabsContent value="team" className="mt-4">
+          <GlowCard className="p-6" hover={false}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="heading-mono">Team Members</h2>
+              {isOwner && <Button size="sm" className="bg-[var(--jarvis-accent)] text-[var(--jarvis-bg-primary)]"><Users className="h-3 w-3 mr-1" /> Invite</Button>}
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-[var(--jarvis-border)]">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-[var(--jarvis-border)] bg-[var(--jarvis-bg-tertiary)]">
+                  {["Name", "Email", "Role", "Dept Access", "Status"].map((h) => <th key={h} className="px-4 py-2 text-left text-[10px] font-mono uppercase text-[var(--jarvis-text-muted)]">{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  <tr className="border-b border-[var(--jarvis-border)]">
+                    <td className="px-4 py-3 text-[var(--jarvis-text-primary)]">Lamin Ngobeh</td>
+                    <td className="px-4 py-3 text-[var(--jarvis-text-secondary)]">admin@vesper.app</td>
+                    <td className="px-4 py-3"><span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] text-emerald-400 font-medium">Owner</span></td>
+                    <td className="px-4 py-3 text-[10px] text-[var(--jarvis-text-muted)]">All</td>
+                    <td className="px-4 py-3"><span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] text-emerald-400">Active</span></td>
+                  </tr>
+                  <tr className="border-b border-[var(--jarvis-border)]">
+                    <td className="px-4 py-3 text-[var(--jarvis-text-primary)]">Terrell Alston</td>
+                    <td className="px-4 py-3 text-[var(--jarvis-text-secondary)]">terrell@hhcc.com</td>
+                    <td className="px-4 py-3"><span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] text-blue-400 font-medium">Admin</span></td>
+                    <td className="px-4 py-3 text-[10px] text-[var(--jarvis-text-muted)]">All</td>
+                    <td className="px-4 py-3"><span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] text-emerald-400">Active</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-6">
+              <h3 className="heading-mono text-xs mb-3">Permission Matrix</h3>
+              <div className="overflow-x-auto rounded-lg border border-[var(--jarvis-border)]">
+                <table className="w-full text-[10px]">
+                  <thead><tr className="bg-[var(--jarvis-bg-tertiary)]">
+                    <th className="px-3 py-2 text-left text-[var(--jarvis-text-muted)]">Permission</th>
+                    <th className="px-3 py-2 text-center text-emerald-400">Owner</th>
+                    <th className="px-3 py-2 text-center text-blue-400">Admin</th>
+                    <th className="px-3 py-2 text-center text-purple-400">Operator</th>
+                    <th className="px-3 py-2 text-center text-gray-400">Viewer</th>
+                  </tr></thead>
+                  <tbody className="text-[var(--jarvis-text-secondary)]">
+                    {[["Dashboard","✓","✓","✓","✓"],["All Departments","✓","✓","—","—"],["Financials","✓","—","—","—"],["PHI Data","✓","—","—","—"],["Directives","✓","✓","Own Dept","—"],["Manage Agents","✓","✓","—","—"],["Settings","✓","✓","—","—"],["Invite Team","✓","✓","—","—"],["Edit Company","✓","—","—","—"],["Approve Assets","✓","✓","—","—"]].map(([p,...r])=>(
+                      <tr key={p} className="border-t border-[var(--jarvis-border)]">
+                        <td className="px-3 py-1.5 text-[var(--jarvis-text-primary)]">{p}</td>
+                        {r.map((v,i)=><td key={i} className={`px-3 py-1.5 text-center ${v==="✓"?"text-emerald-400":v==="—"?"text-[var(--jarvis-text-muted)]":"text-amber-400"}`}>{v}</td>)}
                       </tr>
-                    </thead>
-                    <tbody>
-                      {TEAM_MEMBERS.map((member) => {
-                        const MemberIcon = member.icon;
-                        return (
-                          <tr
-                            key={member.email}
-                            className="border-b border-[var(--jarvis-border)] last:border-b-0"
-                          >
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--jarvis-bg-tertiary)] border border-[var(--jarvis-border)]">
-                                  <MemberIcon className="h-3.5 w-3.5 text-[var(--jarvis-accent)]" />
-                                </div>
-                                <span className="font-medium text-[var(--jarvis-text-primary)]">
-                                  {member.name}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="inline-flex items-center rounded-md bg-[var(--jarvis-bg-tertiary)] border border-[var(--jarvis-border)] px-2 py-0.5 text-xs font-medium text-[var(--jarvis-text-secondary)]">
-                                {member.role}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-[var(--jarvis-text-muted)]">
-                              {member.email}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </GlowCard>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </TabsContent>
+          </GlowCard>
+        </TabsContent>
 
-          {/* Integrations Tab */}
-          <TabsContent value="integrations">
-            <motion.div
-              className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-3"
-              variants={stagger}
-              initial="hidden"
-              animate="show"
-            >
-              {INTEGRATIONS.map((integration) => {
-                const IntIcon = integration.icon;
-                return (
-                  <motion.div key={integration.id} variants={fadeUp}>
-                    <GlowCard className="p-5" glowColor={integration.color} hover={false}>
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="flex h-10 w-10 items-center justify-center rounded-xl"
-                            style={{ backgroundColor: `${integration.color}15` }}
-                          >
-                            <IntIcon
-                              className="h-5 w-5"
-                              style={{ color: integration.color }}
-                            />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-[var(--jarvis-text-primary)]">
-                              {integration.name}
-                            </p>
-                            <p className="text-[10px] text-[var(--jarvis-text-muted)]">
-                              {integration.description}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{
-                              backgroundColor: integration.connected
-                                ? "var(--jarvis-success)"
-                                : "var(--jarvis-danger)",
-                              boxShadow: integration.connected
-                                ? "0 0 6px var(--jarvis-success)"
-                                : "0 0 6px var(--jarvis-danger)",
-                            }}
-                          />
-                          <span className="text-xs text-[var(--jarvis-text-muted)]">
-                            {integration.connected ? "Connected" : "Not Connected"}
-                          </span>
-                        </div>
-                        <Button variant="outline" size="sm">
-                          Connect
-                        </Button>
-                      </div>
-                    </GlowCard>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </TabsContent>
-        </Tabs>
-      </motion.div>
+        {/* SECURITY */}
+        <TabsContent value="security" className="mt-4">
+          <GlowCard className="p-6" hover={false}>
+            <h2 className="heading-mono mb-4">Security</h2>
+            <div className="space-y-4">
+              <div className="rounded-lg bg-[var(--jarvis-bg-tertiary)] px-4 py-3">
+                <p className="text-sm text-[var(--jarvis-text-primary)]">Change Password</p>
+                <div className="grid gap-3 sm:grid-cols-2 mt-3">
+                  <Input type="password" placeholder="Current password" className="bg-[var(--jarvis-bg-secondary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-primary)]" />
+                  <Input type="password" placeholder="New password" className="bg-[var(--jarvis-bg-secondary)] border-[var(--jarvis-border)] text-[var(--jarvis-text-primary)]" />
+                </div>
+                <Button size="sm" className="mt-3 bg-[var(--jarvis-accent)] text-[var(--jarvis-bg-primary)]">Update Password</Button>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-[var(--jarvis-bg-tertiary)] px-4 py-3">
+                <div><p className="text-sm text-[var(--jarvis-text-primary)]">Two-Factor Authentication</p><p className="text-[10px] text-[var(--jarvis-text-muted)]">Extra security layer</p></div>
+                <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] text-amber-400">Coming Soon</span>
+              </div>
+            </div>
+          </GlowCard>
+        </TabsContent>
+      </Tabs>
     </motion.div>
   );
 }
