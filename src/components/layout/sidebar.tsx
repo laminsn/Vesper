@@ -76,6 +76,7 @@ const NAV_SECTIONS: readonly SidebarSection[] = [
   {
     labelKey: "nav.intelligence",
     items: [
+      { labelKey: "nav.assets", href: "/assets", icon: FileText },
       { labelKey: "nav.contentVault", href: "/content-vault", icon: Sparkles },
       { labelKey: "nav.dailyReports", href: "/daily-reports", icon: FileText },
       { labelKey: "nav.commsHub", href: "/comms", icon: MessageSquare },
@@ -205,10 +206,13 @@ export function Sidebar() {
         </div>
       </nav>
 
-      {/* Language Selector */}
+      {/* Language Selector + Version */}
       {!sidebarCollapsed && (
-        <div className="border-t border-[var(--sidebar-border)] px-3 py-3">
+        <div className="border-t border-[var(--sidebar-border)] px-3 py-3 space-y-2">
           <LanguageSelector />
+          <p className="text-[9px] text-center text-[var(--sidebar-text-muted)] font-mono">
+            Vesper v1.0.0
+          </p>
         </div>
       )}
     </div>

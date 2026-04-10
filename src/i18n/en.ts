@@ -12,6 +12,7 @@ export const en = {
   "nav.calendar": "Calendar",
   "nav.dailyTasks": "Daily Tasks",
   "nav.intelligence": "Intelligence",
+  "nav.assets": "Assets",
   "nav.contentVault": "Content Vault",
   "nav.dailyReports": "Daily Reports",
   "nav.commsHub": "Comms Hub",
