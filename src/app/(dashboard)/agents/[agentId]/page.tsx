@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, Send, ListTodo, MessageSquare, Sparkles } from "lucide-react";
@@ -9,6 +9,7 @@ import { useDepartments } from "@/hooks/use-departments";
 import { useDirectives } from "@/hooks/use-directives";
 import { useTasks } from "@/hooks/use-tasks";
 import { useAgentComms } from "@/hooks/use-comms";
+import { useAgentChat } from "@/hooks/use-agent-chat";
 import { useEvolutionProposals } from "@/hooks/use-evolution";
 import {
   StatusIndicator,
@@ -75,6 +76,22 @@ export default function AgentDetailPage() {
         : null,
     [agent, departments]
   );
+
+  // Agent chat
+  const { messages: chatMessages, sendMessage, isSending } = useAgentChat(agent?.id ?? null);
+  const [chatInput, setChatInput] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  const handleSendChat = async () => {
+    const text = chatInput.trim();
+    if (!text || isSending) return;
+    setChatInput("");
+    await sendMessage(text);
+  };
 
   if (agentLoading) {
     return (
@@ -285,25 +302,69 @@ export default function AgentDetailPage() {
 
           {/* Communications Tab */}
           <TabsContent value="communications" className="mt-4">
-            <GlowCard className="p-5" hover={false}>
-              <h3 className="heading-mono mb-4">Communications ({agentComms.length})</h3>
-              {agentComms.length === 0 ? (
-                <EmptyState message="No communications for this agent" />
-              ) : (
-                <div className="space-y-2">
-                  {agentComms.map((c) => (
-                    <div key={c.id} className="rounded-lg bg-[var(--jarvis-bg-tertiary)] px-4 py-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-mono uppercase text-[var(--jarvis-accent)]">{c.message_type}</span>
-                        <span className="text-[10px] text-[var(--jarvis-text-muted)]">&middot; {c.priority}</span>
-                        <span className="text-[10px] text-[var(--jarvis-text-muted)] ml-auto">{formatRelativeTime(c.created_at)}</span>
+            <GlowCard className="p-0 overflow-hidden" hover={false}>
+              {/* Chat messages */}
+              <div className="h-80 overflow-y-auto p-4 space-y-3">
+                {chatMessages.length === 0 && agentComms.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <EmptyState message={`Start a conversation with ${agent?.name ?? "this agent"}`} />
+                  </div>
+                ) : (
+                  <>
+                    {(chatMessages.length > 0 ? chatMessages : agentComms.map((c) => ({
+                      id: c.id,
+                      type: c.message_type as "directive",
+                      from: c.from_agent_id === agent?.id ? (c.from_agent_id ?? "agent") : "user",
+                      to: c.to_agent_id === agent?.id ? (c.to_agent_id ?? "agent") : "user",
+                      content: c.body,
+                      timestamp: c.created_at,
+                      status: "delivered" as const,
+                    }))).map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                          className={`max-w-[75%] rounded-xl px-4 py-2.5 ${
+                            msg.from === "user"
+                              ? "bg-[var(--jarvis-accent)]/20 text-[var(--jarvis-text-primary)]"
+                              : "bg-[var(--jarvis-bg-tertiary)] text-[var(--jarvis-text-secondary)]"
+                          }`}
+                        >
+                          <p className="text-sm">{msg.content}</p>
+                          <p className="text-[10px] text-[var(--jarvis-text-muted)] mt-1">
+                            {formatRelativeTime(msg.timestamp)}
+                          </p>
+                        </div>
                       </div>
-                      {c.subject && <p className="text-xs font-medium text-[var(--jarvis-text-primary)] mb-1">{c.subject}</p>}
-                      <p className="text-sm text-[var(--jarvis-text-secondary)]">{c.body}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                    <div ref={chatEndRef} />
+                  </>
+                )}
+              </div>
+
+              {/* Chat input */}
+              <div className="border-t border-[var(--jarvis-border)] p-3 flex items-center gap-2">
+                <input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendChat();
+                    }
+                  }}
+                  placeholder={`Message ${agent?.name ?? "agent"}...`}
+                  className="flex-1 bg-[var(--jarvis-bg-tertiary)] rounded-lg px-4 py-2 text-sm text-[var(--jarvis-text-primary)] placeholder:text-[var(--jarvis-text-muted)] outline-none focus:ring-1 focus:ring-[var(--jarvis-accent)]"
+                />
+                <button
+                  onClick={handleSendChat}
+                  disabled={isSending || !chatInput.trim()}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--jarvis-accent)] text-white transition-opacity disabled:opacity-40 hover:opacity-90"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
             </GlowCard>
           </TabsContent>
 

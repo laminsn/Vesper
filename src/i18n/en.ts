@@ -27,6 +27,7 @@ export const en = {
   "nav.commandStation": "Command Station",
   "nav.billing": "Billing",
   "nav.apiPortal": "API Portal",
+  "nav.auditLogs": "Audit Logs",
   "nav.notifications": "Notifications",
 
   // Dashboard

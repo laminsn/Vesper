@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useUiStore } from "@/stores/ui-store";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { CommandPalette } from "@/components/layout/command-palette";
 
 /** Vesper BEAST MODE startup sound — 5-layer synthesis, deep AI engine ignition */
 function useStartupSound() {
@@ -134,6 +135,21 @@ function useStartupSound() {
   }, []);
 }
 
+/** Register Cmd+K / Ctrl+K global shortcut for command palette */
+function useCommandPaletteShortcut() {
+  const setOpen = useUiStore((s) => s.setGlobalSearchOpen);
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setOpen(true);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [setOpen]);
+}
+
 interface DashboardShellProps {
   readonly children: ReactNode;
 }
@@ -143,6 +159,7 @@ const SIDEBAR_COLLAPSED_WIDTH = 72;
 
 export function DashboardShell({ children }: DashboardShellProps) {
   useStartupSound();
+  useCommandPaletteShortcut();
   const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed);
 
   const currentWidth = sidebarCollapsed
@@ -169,6 +186,9 @@ export function DashboardShell({ children }: DashboardShellProps) {
         <Topbar />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </motion.div>
+
+      {/* Command Palette (Cmd+K) */}
+      <CommandPalette />
     </div>
   );
 }

@@ -30,6 +30,25 @@ function applyThemeToDocument(theme: Theme): void {
   }
 }
 
+function getOsPreferredTheme(): Theme {
+  try {
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: light)").matches) {
+      return "light";
+    }
+  } catch {
+    // matchMedia unavailable
+  }
+  return DEFAULT_THEME;
+}
+
+function hasExplicitPreference(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
 function readStoredTheme(): Theme {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -39,7 +58,8 @@ function readStoredTheme(): Theme {
   } catch {
     // localStorage may be unavailable (SSR, privacy mode)
   }
-  return DEFAULT_THEME;
+  // No explicit preference — follow OS
+  return getOsPreferredTheme();
 }
 
 function persistTheme(theme: Theme): void {
@@ -55,11 +75,23 @@ export function ThemeProvider({
 }: Readonly<{ children: React.ReactNode }>) {
   const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
 
-  // Read persisted theme on mount
+  // Read persisted theme on mount + listen for OS changes
   useEffect(() => {
     const stored = readStoredTheme();
     setThemeState(stored);
     applyThemeToDocument(stored);
+
+    // Listen for OS theme changes when user has no explicit preference
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    function handleChange(e: MediaQueryListEvent) {
+      if (!hasExplicitPreference()) {
+        const next: Theme = e.matches ? "light" : "dark";
+        setThemeState(next);
+        applyThemeToDocument(next);
+      }
+    }
+    mq.addEventListener("change", handleChange);
+    return () => mq.removeEventListener("change", handleChange);
   }, []);
 
   const setTheme = useCallback((next: Theme) => {

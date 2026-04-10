@@ -29,6 +29,7 @@ export const es: Record<TranslationKey, string> = {
   "nav.commandStation": "Centro de Comando",
   "nav.billing": "Facturaci\u00f3n",
   "nav.apiPortal": "Portal API",
+  "nav.auditLogs": "Registro de Auditoría",
   "nav.notifications": "Notificaciones",
 
   // Dashboard

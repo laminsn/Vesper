@@ -23,8 +23,14 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Vesper",
-  description:
-    "AI Agent Workforce Management Platform",
+  description: "AI Agent Workforce Management Platform",
+  manifest: "/manifest.json",
+  themeColor: "#06d6a0",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Vesper AI",
+  },
 };
 
 export default function RootLayout({

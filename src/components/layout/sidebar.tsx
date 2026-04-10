@@ -27,6 +27,7 @@ import {
   CreditCard,
   Code,
   BellRing,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
@@ -110,6 +111,12 @@ const NAV_SECTIONS: readonly SidebarSection[] = [
         labelKey: "nav.apiPortal",
         href: "/api-portal",
         icon: Code,
+        roles: ["owner", "cofounder"],
+      },
+      {
+        labelKey: "nav.auditLogs",
+        href: "/audit-logs",
+        icon: ScrollText,
         roles: ["owner", "cofounder"],
       },
     ],
