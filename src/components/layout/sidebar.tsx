@@ -76,6 +76,7 @@ const NAV_SECTIONS: readonly SidebarSection[] = [
   {
     labelKey: "nav.intelligence",
     items: [
+      { labelKey: "nav.contentVault", href: "/content-vault", icon: Sparkles },
       { labelKey: "nav.dailyReports", href: "/daily-reports", icon: FileText },
       { labelKey: "nav.commsHub", href: "/comms", icon: MessageSquare },
       { labelKey: "nav.evolution", href: "/evolution", icon: Sparkles },

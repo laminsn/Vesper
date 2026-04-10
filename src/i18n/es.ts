@@ -14,6 +14,7 @@ export const es: Record<TranslationKey, string> = {
   "nav.calendar": "Calendario",
   "nav.dailyTasks": "Tareas Diarias",
   "nav.intelligence": "Inteligencia",
+  "nav.contentVault": "Bóveda de Contenido",
   "nav.dailyReports": "Reportes Diarios",
   "nav.commsHub": "Centro de Comms",
   "nav.evolution": "Evoluci\u00f3n",

@@ -595,5 +595,102 @@ export async function POST() {
     results.push("Calendar events already exist — skipped seeding");
   }
 
+  // Phase 6: Seed content vault items
+  const { data: existingVault } = await supabase.from("content_vault").select("id").limit(1);
+  if (!existingVault || existingVault.length === 0) {
+    const quillId = agentMap.get("quill") ?? null;
+    const vaultItems = [
+      {
+        source_type: "interview",
+        source_url: "https://youtube.com/watch?v=example1",
+        source_title: "Diane on Compassionate End-of-Life Care — Full Interview",
+        content_type: "quote",
+        body: "We don't measure success by how many patients we admit. We measure it by how many families tell us they felt supported during the hardest moment of their lives.",
+        speaker: "Diane",
+        timestamp_start: "12:34",
+        timestamp_end: "12:52",
+        tags: ["leadership", "compassion", "metrics", "family-centered"],
+        viral_potential: "high",
+        visual_treatment: "Dark background, white serif text, Diane's portrait left-aligned. Orange highlight on 'felt supported'. 1080x1350 format.",
+        department: "executive",
+        extracted_by_agent_id: quillId,
+      },
+      {
+        source_type: "youtube",
+        source_url: "https://youtube.com/watch?v=example2",
+        source_title: "Dr. Elena — What Families Need to Know About Hospice",
+        content_type: "quote",
+        body: "The number one misconception about hospice is that it means giving up. It doesn't. It means choosing to focus on living — on comfort, on dignity, on being present with the people you love.",
+        speaker: "Dr. Elena",
+        timestamp_start: "4:17",
+        timestamp_end: "4:38",
+        tags: ["hospice-education", "misconceptions", "dignity", "family"],
+        viral_potential: "viral",
+        visual_treatment: "Split layout: Dr. Elena speaking still on left, quote text on right. Blue accent on 'choosing to focus on living'. Carousel slide 1 of 2.",
+        department: "clinical-operations",
+        extracted_by_agent_id: quillId,
+      },
+      {
+        source_type: "podcast",
+        source_url: "https://podcast.example.com/ep42",
+        source_title: "HHCC Insights Podcast Ep 42 — Caregiver Wellness",
+        content_type: "key_phrase",
+        body: "You cannot pour from an empty cup. Caregiver burnout isn't just a staffing problem — it's a patient care problem.",
+        speaker: "Terra",
+        timestamp_start: "18:05",
+        tags: ["caregiver-wellness", "burnout", "staffing", "patient-care"],
+        viral_potential: "high",
+        visual_treatment: "Minimal design: black background, large white text, purple accent on 'empty cup'. Single static post 1080x1080.",
+        department: "caregiver-staffing",
+        extracted_by_agent_id: quillId,
+      },
+      {
+        source_type: "youtube",
+        source_url: "https://youtube.com/watch?v=example3",
+        source_title: "Community Education: Understanding Hospice",
+        content_type: "viral_topic",
+        body: "Topic: '5 Things Every Family Should Know Before Calling Hospice' — recurring theme across 3 recent community events. Families consistently say they wish they'd called sooner. This angle has carousel potential: 5 slides, each with one 'thing' + brief explanation.",
+        tags: ["content-idea", "carousel", "family-education", "evergreen"],
+        viral_potential: "viral",
+        platform_target: "instagram,linkedin",
+        department: "marketing",
+        extracted_by_agent_id: quillId,
+      },
+      {
+        source_type: "interview",
+        source_title: "Terrell Alston on Building a Hospice Company with Heart",
+        content_type: "hook",
+        body: "What if the most important business decision you ever make isn't about profit — but about how you treat people at the end?",
+        speaker: "Terrell Alston",
+        tags: ["hook", "opening-line", "leadership", "purpose"],
+        viral_potential: "high",
+        visual_treatment: "Video hook for Reels/TikTok: text overlay on B-roll of HHC team. 3 seconds max before reveal.",
+        platform_target: "instagram,tiktok",
+        department: "executive",
+        extracted_by_agent_id: quillId,
+      },
+      {
+        source_type: "youtube",
+        source_title: "HHCC Monthly Mission Alignment Recording",
+        content_type: "thumbnail",
+        body: "Thumbnail moment: Diane reading a family letter aloud at 23:15 — emotional, authentic, would make a strong still for a quote post. Family letter text (anonymized): 'You gave us three more months of real conversations.'",
+        timestamp_start: "23:15",
+        tags: ["thumbnail", "emotional", "family-letter", "diane"],
+        viral_potential: "medium",
+        department: "executive",
+        extracted_by_agent_id: quillId,
+      },
+    ];
+
+    let vaultInserted = 0;
+    for (const item of vaultItems) {
+      const { error } = await supabase.from("content_vault").insert(item);
+      if (!error) vaultInserted++;
+    }
+    results.push("Content vault seeded: " + vaultInserted);
+  } else {
+    results.push("Content vault already has data — skipped seeding");
+  }
+
   return NextResponse.json({ success: true, results });
 }
