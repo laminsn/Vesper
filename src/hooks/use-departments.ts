@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useOrgStore } from "@/stores/org-store";
+import { getStaticDepartments } from "@/data/empire-data";
 import type { Department } from "@/types";
 
 export function useDepartments() {
@@ -23,12 +24,15 @@ export function useDepartments() {
       if (error) throw error;
       return data;
     },
+    initialData: () => [...getStaticDepartments(orgId)] as Department[],
+    staleTime: 5 * 60_000,
   });
 }
 
 export function useDepartment(slug: string) {
   const supabase = createClient();
   const orgId = useOrgStore((s) => s.currentOrgId);
+  const staticDept = getStaticDepartments(orgId).find((d) => d.slug === slug);
 
   return useQuery<Department>({
     queryKey: ["departments", orgId, slug],
@@ -44,6 +48,8 @@ export function useDepartment(slug: string) {
       if (error) throw error;
       return data;
     },
+    initialData: staticDept as Department | undefined,
     enabled: Boolean(slug),
+    staleTime: 5 * 60_000,
   });
 }

@@ -53,7 +53,7 @@ export function useAgentChat(agentId: string | null) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []).map((c) => commToMessage(c, agentId));
+      return (data ?? []).map((c: AgentCommunication) => commToMessage(c, agentId));
     },
     enabled: Boolean(agentId),
   });

@@ -78,7 +78,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } = supabase.auth.onAuthStateChange(async (_event: any, newSession: any) => {
       if (!mounted) return;
 
       setSession(newSession);

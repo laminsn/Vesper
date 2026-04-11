@@ -17,11 +17,12 @@ import {
   Sun,
   Layers,
 } from "lucide-react";
-import { useAgents } from "@/hooks/use-agents";
-import { useDepartments } from "@/hooks/use-departments";
-import { usePlaybooks } from "@/hooks/use-playbooks";
 import { useUiStore } from "@/stores/ui-store";
 import { useTheme } from "@/providers/theme-provider";
+import { createClient } from "@/lib/supabase/client";
+import { useOrgStore } from "@/stores/org-store";
+import { useQuery } from "@tanstack/react-query";
+import type { Agent, Department, Playbook } from "@/types";
 
 interface PaletteItem {
   readonly id: string;
@@ -63,9 +64,42 @@ export function CommandPalette() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data: agents = [] } = useAgents();
-  const { data: departments = [] } = useDepartments();
-  const { data: playbooks = [] } = usePlaybooks();
+  // Only fetch data when palette is actually open — eliminates 3 queries at page load
+  const orgId = useOrgStore((s) => s.currentOrgId);
+  const supabase = createClient();
+  const { data: agents = [] } = useQuery<Agent[]>({
+    queryKey: ["cmd-palette-agents", orgId],
+    queryFn: async () => {
+      let q = supabase.from("agents").select("id,slug,name,role,department").order("name");
+      if (orgId) q = q.eq("organization_id", orgId);
+      const { data } = await q;
+      return (data ?? []) as Agent[];
+    },
+    enabled: open,
+    staleTime: 10 * 60_000,
+  });
+  const { data: departments = [] } = useQuery<Department[]>({
+    queryKey: ["cmd-palette-depts", orgId],
+    queryFn: async () => {
+      let q = supabase.from("departments").select("id,slug,name,agent_count").order("name");
+      if (orgId) q = q.eq("organization_id", orgId);
+      const { data } = await q;
+      return (data ?? []) as Department[];
+    },
+    enabled: open,
+    staleTime: 10 * 60_000,
+  });
+  const { data: playbooks = [] } = useQuery<Playbook[]>({
+    queryKey: ["cmd-palette-playbooks", orgId],
+    queryFn: async () => {
+      let q = supabase.from("playbooks").select("id,name,trigger_description").order("name");
+      if (orgId) q = q.eq("organization_id", orgId);
+      const { data } = await q;
+      return (data ?? []) as Playbook[];
+    },
+    enabled: open,
+    staleTime: 10 * 60_000,
+  });
 
   // Build searchable items
   const allItems: readonly PaletteItem[] = useMemo(() => {

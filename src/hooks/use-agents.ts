@@ -3,6 +3,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useOrgStore } from "@/stores/org-store";
+import {
+  getStaticAgents,
+  getStaticAgent,
+  getStaticAgentsByDepartment,
+} from "@/data/empire-data";
 import type { Agent, AgentStatus } from "@/types";
 
 export function useAgents() {
@@ -24,6 +29,8 @@ export function useAgents() {
       if (error) throw error;
       return data;
     },
+    initialData: () => [...getStaticAgents(orgId)] as Agent[],
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -45,7 +52,9 @@ export function useAgent(slug: string) {
       if (error) throw error;
       return data;
     },
+    initialData: () => getStaticAgent(orgId, slug) as Agent | undefined,
     enabled: Boolean(slug),
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -68,7 +77,9 @@ export function useAgentsByDepartment(dept: string) {
       if (error) throw error;
       return data;
     },
+    initialData: () => [...getStaticAgentsByDepartment(orgId, dept)] as Agent[],
     enabled: Boolean(dept),
+    staleTime: 5 * 60_000,
   });
 }
 

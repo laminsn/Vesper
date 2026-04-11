@@ -24,13 +24,14 @@ export function useKpiDashboard(days: number = 30) {
       if (!orgId) return [];
 
       // Fetch all KPIs for this org
-      const { data: kpis, error: kpiError } = await supabase
+      const { data: kpisRaw, error: kpiError } = await supabase
         .from("kpis")
         .select("*")
         .eq("organization_id", orgId)
         .order("metric_name");
       if (kpiError) throw kpiError;
-      if (!kpis || kpis.length === 0) return [];
+      if (!kpisRaw || kpisRaw.length === 0) return [];
+      const kpis = kpisRaw as Array<{ id: string; metric_name: string; current_value: number | null; target_value: number | null; trend: string | null; unit: string | null }>;
 
       // Fetch history for all KPIs in one query
       const kpiIds = kpis.map((k) => k.id);

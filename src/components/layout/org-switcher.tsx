@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { useOrgStore } from "@/stores/org-store";
 import { useI18n } from "@/providers/i18n-provider";
 import { useUiStore } from "@/stores/ui-store";
-import { useOrganizations } from "@/hooks/use-organizations";
 import { ALL_ORGS } from "@/data/organizations";
 import {
   Popover,
@@ -63,24 +62,22 @@ export function OrgSwitcher() {
   const { currentOrgId, setCurrentOrg } = useOrgStore();
   const { t } = useI18n();
   const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed);
-  const { data: orgs, isLoading } = useOrganizations();
 
-  // Transform Supabase orgs into display orgs with colors
-  const displayOrgs: readonly DisplayOrg[] = useMemo(() => {
-    if (!orgs) return [];
-    return orgs.map((o) => ({
+  // Use static org data — no Supabase query needed
+  const displayOrgs: readonly DisplayOrg[] = useMemo(() =>
+    ALL_ORGS.map((o) => ({
       id: o.id,
       name: o.name,
       slug: o.slug,
-      industry: (o.industry ?? "other") as OrgIndustry,
-      hipaaMode: o.hipaa_mode,
-      color: getOrgColor(o.slug),
-    }));
-  }, [orgs]);
+      industry: o.industry,
+      hipaaMode: o.hipaaMode,
+      color: o.color,
+    })),
+  []);
 
   const activeOrg = displayOrgs.find((o) => o.id === currentOrgId) ?? displayOrgs[0];
 
-  // Auto-select first org if none selected and orgs loaded
+  // Auto-select first org if none selected
   if (!currentOrgId && activeOrg) {
     setCurrentOrg(activeOrg.id, activeOrg.name, activeOrg.slug, activeOrg.hipaaMode);
   }
@@ -95,7 +92,7 @@ export function OrgSwitcher() {
     router.push("/settings/upload-profile");
   };
 
-  if (isLoading || !activeOrg) {
+  if (!activeOrg) {
     return (
       <div className="flex h-10 items-center justify-center">
         <Loader2 className="h-4 w-4 animate-spin text-[var(--jarvis-text-muted)]" />
