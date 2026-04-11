@@ -68,7 +68,7 @@ export function Topbar() {
       >
         <Search className="h-3.5 w-3.5" />
         <span>{t("common.search")}</span>
-        <kbd className="ml-4 hidden rounded border border-[var(--jarvis-border)] bg-[var(--jarvis-bg-secondary)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--jarvis-text-muted)] sm:inline-block">
+        <kbd className="ml-4 rounded border border-[var(--jarvis-border)] bg-[var(--jarvis-bg-secondary)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--jarvis-text-muted)]">
           {"\u2318"}K
         </kbd>
       </button>

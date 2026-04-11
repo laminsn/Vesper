@@ -60,10 +60,20 @@ export const ORG_RAM: OrgDefinition = {
   color: "#8b5cf6",
 };
 
+export const ORG_CB: OrgDefinition = {
+  id: "00000000-0000-4000-a000-000000000007",
+  name: "Casa Baise",
+  slug: "cb",
+  industry: "technology",
+  hipaaMode: false,
+  color: "#10b981",
+};
+
 export const ALL_ORGS: readonly OrgDefinition[] = [
   ORG_HHCC,
   ORG_FNF,
   ORG_BET,
   ORG_HAA,
   ORG_RAM,
+  ORG_CB,
 ] as const;

@@ -36,6 +36,8 @@ export function useAgentComms(filters?: CommsFilters) {
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60_000,
+    initialData: [],
   });
 }
 

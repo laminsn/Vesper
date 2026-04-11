@@ -23,6 +23,8 @@ export function usePlaybooks() {
       if (error) throw error;
       return data;
     },
+    staleTime: 10 * 60_000,
+    initialData: [],
   });
 }
 

@@ -23,6 +23,8 @@ export function useHandoffs() {
       if (error) throw error;
       return data;
     },
+    staleTime: 10 * 60_000,
+    initialData: [],
   });
 }
 

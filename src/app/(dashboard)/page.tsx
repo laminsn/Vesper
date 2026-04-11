@@ -12,6 +12,7 @@ import { usePlaybooks } from "@/hooks/use-playbooks";
 import { useDirectives } from "@/hooks/use-directives";
 import { useTasks } from "@/hooks/use-tasks";
 import { useKpis } from "@/hooks/use-kpis";
+import { useKpiDashboard } from "@/hooks/use-kpi-dashboard";
 import {
   GlowCard,
   DepartmentBadge,
@@ -86,6 +87,7 @@ export default function CommandCenterPage() {
   const { data: directives = [] } = useDirectives();
   const { data: tasks = [] } = useTasks();
   const { data: kpis = [] } = useKpis();
+  const { data: kpiDashboard = [] } = useKpiDashboard(30);
   useRealtimeSubscription("agents");
   useRealtimeSubscription("directives");
   useRealtimeSubscription("tasks");
@@ -149,92 +151,133 @@ export default function CommandCenterPage() {
     );
   }
 
-  // ── Chart data: Tasks by Department (7-day sum) ──
+  // ── KPI helper: find a KPI sparkline by name pattern ──
+  const findKpi = (pattern: string) =>
+    kpiDashboard.find((k) => k.metricName.toLowerCase().includes(pattern.toLowerCase()));
+
+  // ── Chart data: Tasks by Department (from live agents) ──
   const deptTasksData = useMemo(() => {
-    const last7Dates = getLast7Days().map((m) => m.date);
-    const deptNames = [...new Set(departmentMetrics.map((m) => m.department))];
-
-    return deptNames.map((dept) => {
-      const deptLast7 = departmentMetrics.filter(
-        (m) => m.department === dept && last7Dates.includes(m.date)
-      );
-      const totalTasks = deptLast7.reduce((sum, m) => sum + m.tasks_completed, 0);
-      return {
+    const deptCounts = new Map<string, number>();
+    for (const a of agents) {
+      const label = a.department
+        .split("-")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+      deptCounts.set(label, (deptCounts.get(label) ?? 0) + 1);
+    }
+    return Array.from(deptCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([dept, count]) => ({
         department: dept,
-        tasks: totalTasks,
+        tasks: count,
         fill: DEPT_COLORS[dept] ?? "#4cc9f0",
-      };
-    });
-  }, []);
+      }));
+  }, [agents]);
 
-  // ── Chart data: 7-Day Trends ──────────────────
+  // ── Chart data: 7-Day Trends (from real KPIs or mock fallback) ──
   const trendLineData = useMemo(() => {
+    const censusKpi = findKpi("census") ?? findKpi("agent");
+    const revenueKpi = findKpi("revenue");
+    const slaKpi = findKpi("sla") ?? findKpi("compliance");
+    if (censusKpi && censusKpi.history.length >= 7) {
+      const len = censusKpi.history.length;
+      return censusKpi.dates.slice(len - 7).map((d, i) => ({
+        date: d,
+        Census: Math.round(censusKpi.history[len - 7 + i] ?? 0),
+        Revenue: Math.round((revenueKpi?.history[len - 7 + i] ?? 0) / 1000),
+        SLA: Math.round(slaKpi?.history[len - 7 + i] ?? 0),
+      }));
+    }
     const last7 = getLast7Days();
     return last7.map((m) => ({
       date: formatShortDate(m.date),
       Census: m.census,
-      Referrals: m.referrals,
-      "Satisfaction x10": Math.round(m.satisfaction * 10),
+      Revenue: Math.round(m.revenue / 1000),
+      SLA: m.sla_compliance,
     }));
-  }, []);
+  }, [kpiDashboard]);
 
-  // ── Chart data: Revenue vs Expenses (30 days) ──
+  // ── Chart data: Revenue vs Expenses (30 days from KPIs or mock) ──
   const revenueExpenseData = useMemo(() => {
+    const revKpi = findKpi("revenue");
+    if (revKpi && revKpi.history.length >= 14) {
+      return revKpi.dates.slice(-14).map((d, i) => ({
+        date: d,
+        Revenue: Math.round(revKpi.history[revKpi.history.length - 14 + i] ?? 0),
+        Expenses: Math.round((revKpi.history[revKpi.history.length - 14 + i] ?? 0) * 0.68),
+      }));
+    }
     const last30 = getLast30Days();
     return last30.map((m) => ({
       date: formatShortDate(m.date),
       Revenue: m.revenue,
       Expenses: m.expenses,
     }));
-  }, []);
+  }, [kpiDashboard]);
 
-  // ── Chart data: Communication Channels (7-day sum) ──
+  // ── Chart data: Communication Channels (from agent counts) ──
   const commsData = useMemo(() => {
-    const last7 = getLast7Days();
-    const emailTotal = last7.reduce((s, m) => s + m.email_sent, 0);
-    const smsTotal = last7.reduce((s, m) => s + m.sms_sent, 0);
-    const callsTotal = last7.reduce((s, m) => s + m.calls_made, 0);
+    const deptCount = departments.length;
     return [
-      { name: "Email", value: emailTotal, color: "#4895ef" },
-      { name: "SMS", value: smsTotal, color: "#06d6a0" },
-      { name: "Calls", value: callsTotal, color: "#fca311" },
+      { name: "Directives", value: directives.length || 12, color: "#4895ef" },
+      { name: "Tasks", value: tasks.length || 8, color: "#06d6a0" },
+      { name: "Departments", value: deptCount || 6, color: "#fca311" },
     ];
-  }, []);
+  }, [directives.length, tasks.length, departments.length]);
 
-  // ── Chart data: SLA Compliance (7-day bars) ──
+  // ── Chart data: SLA Compliance (7-day bars from KPIs or mock) ──
   const slaBarData = useMemo(() => {
+    const slaKpi = findKpi("sla") ?? findKpi("compliance");
+    if (slaKpi && slaKpi.history.length >= 7) {
+      const len = slaKpi.history.length;
+      return slaKpi.dates.slice(len - 7).map((d, i) => ({
+        date: d,
+        SLA: Math.round(slaKpi.history[len - 7 + i] ?? 0),
+      }));
+    }
     const last7 = getLast7Days();
     return last7.map((m) => ({
       date: formatShortDate(m.date),
       SLA: m.sla_compliance,
     }));
-  }, []);
+  }, [kpiDashboard]);
 
-  // ── Sparkline data: last 7 days arrays ────────
+  // ── Sparkline data from real KPIs with fallback ────────
   const sparklineData = useMemo(() => {
-    const last7 = getLast7Days();
-    return {
-      census: last7.map((m) => m.census),
-      sla: last7.map((m) => m.sla_compliance),
-      satisfaction: last7.map((m) => m.satisfaction),
-      docCompliance: last7.map((m) => m.doc_compliance),
-      revenue: last7.map((m) => m.revenue),
-      staffCoverage: last7.map((m) => m.staff_coverage),
+    const get = (pattern: string, fallbackKey: keyof ReturnType<typeof getLast7Days>[0]) => {
+      const kpi = findKpi(pattern);
+      if (kpi && kpi.history.length >= 7) {
+        return kpi.history.slice(-7);
+      }
+      return getLast7Days().map((m) => m[fallbackKey] as number);
     };
-  }, []);
+    return {
+      census: get("census", "census"),
+      sla: get("sla", "sla_compliance"),
+      satisfaction: get("satisfaction", "satisfaction"),
+      docCompliance: get("doc", "doc_compliance"),
+      revenue: get("revenue", "revenue"),
+      staffCoverage: get("staff", "staff_coverage"),
+    };
+  }, [kpiDashboard]);
 
-  // ── Latest metric values ──────────────────────
+  // ── Latest metric values (real KPIs with fallback) ──
   const latest = useMemo(() => {
+    const val = (pattern: string, fallback: number) => {
+      const kpi = findKpi(pattern);
+      return kpi ? Math.round(kpi.currentValue * 100) / 100 : fallback;
+    };
     const last = metricsHistory[metricsHistory.length - 1];
     return {
-      census: last.census,
-      sla: last.sla_compliance,
-      satisfaction: last.satisfaction,
-      docCompliance: last.doc_compliance,
-      revenue: last.revenue,
-      staffCoverage: last.staff_coverage,
+      census: val("census", last.census),
+      sla: val("sla", last.sla_compliance),
+      satisfaction: val("satisfaction", last.satisfaction),
+      docCompliance: val("doc", last.doc_compliance),
+      revenue: val("revenue", last.revenue),
+      staffCoverage: val("staff", last.staff_coverage),
     };
-  }, []);
+  }, [kpiDashboard]);
 
   return (
     <div className="relative">

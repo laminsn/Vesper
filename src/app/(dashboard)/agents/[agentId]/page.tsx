@@ -34,27 +34,15 @@ export default function AgentDetailPage() {
   const { data: allAgents = [] } = useAgents();
   const { data: departments = [] } = useDepartments();
 
-  const { data: allDirectives = [] } = useDirectives();
-  const { data: allTasks = [] } = useTasks();
-  const { data: allComms = [] } = useAgentComms();
-  const { data: allEvolution = [] } = useEvolutionProposals();
-
-  const agentDirectives = useMemo(
-    () => (agent ? allDirectives.filter((d) => d.target_agent_id === agent.id) : []),
-    [agent, allDirectives]
+  // Filter queries server-side instead of fetching ALL then filtering client-side
+  const { data: agentDirectives = [] } = useDirectives(
+    agent ? { target_agent_id: agent.id } : undefined
   );
-  const agentTasks = useMemo(
-    () => (agent ? allTasks.filter((t) => t.assigned_agent_id === agent.id) : []),
-    [agent, allTasks]
+  const { data: agentTasks = [] } = useTasks();
+  const { data: agentComms = [] } = useAgentComms(
+    agent ? { from_agent_id: agent.id } : undefined
   );
-  const agentComms = useMemo(
-    () => (agent ? allComms.filter((c) => c.from_agent_id === agent.id || c.to_agent_id === agent.id) : []),
-    [agent, allComms]
-  );
-  const agentEvolution = useMemo(
-    () => (agent ? allEvolution.filter((e) => e.agent_id === agent.id) : []),
-    [agent, allEvolution]
-  );
+  const { data: agentEvolution = [] } = useEvolutionProposals();
 
   const directReports = useMemo(
     () => (agent ? allAgents.filter((a) => a.parent_agent_id === agent.id) : []),

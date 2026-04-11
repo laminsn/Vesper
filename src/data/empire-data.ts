@@ -15,6 +15,7 @@ import { agentsFnf } from "@/data/agents-fnf";
 import { agentsBet } from "@/data/agents-bet";
 import { agentsHaa } from "@/data/agents-haa";
 import { agentsRam } from "@/data/agents-ram";
+import { agentsCb } from "@/data/agents-cb";
 import { ALL_ORGS, type OrgDefinition } from "@/data/organizations";
 
 // ─── Org-keyed agent map ─────────────────────────────────────────────────────
@@ -25,6 +26,7 @@ const AGENT_MAP: Readonly<Record<string, readonly Agent[]>> = {
   "00000000-0000-4000-a000-000000000003": agentsBet,
   "00000000-0000-4000-a000-000000000004": agentsHaa,
   "00000000-0000-4000-a000-000000000005": agentsRam,
+  "00000000-0000-4000-a000-000000000007": agentsCb,
 };
 
 export function getStaticAgents(orgId: string | null): readonly Agent[] {
@@ -65,6 +67,13 @@ const DEPT_COLORS: Record<string, string> = {
   "web-design": "#0ea5e9",
   coaching: "#d97706",
   "client-success": "#059669",
+  "sales-growth": "#3b82f6",
+  "contractor-operations": "#6366f1",
+  "homeowner-experience": "#06b6d4",
+  "contractor-success": "#059669",
+  "trust-safety": "#ef4444",
+  "legal-compliance": "#64748b",
+  "empire-leadership": "#f97316",
 };
 
 function buildDepartments(agents: readonly Agent[], orgId: string): readonly Department[] {
