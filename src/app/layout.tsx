@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   description: "AI Agent Workforce Management Platform",
   manifest: "/manifest.json",
   themeColor: "#06d6a0",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
