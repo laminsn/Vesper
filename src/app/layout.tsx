@@ -23,19 +23,36 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Vesper",
-  description: "AI Agent Workforce Management Platform",
+  description: "Vesper is an AI-powered workforce operating system that deploys, manages, and orchestrates autonomous AI agents across your entire business — from directives and playbooks to real-time reporting and multi-channel communications.",
   manifest: "/manifest.json",
   themeColor: "#06d6a0",
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
     ],
+    apple: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+  },
+  openGraph: {
+    title: "Vesper — AI Agent Workforce OS",
+    description: "Deploy, manage, and orchestrate autonomous AI agents across your entire business. Real-time command center, playbooks, integrations, and multi-channel communications — all in one platform.",
+    siteName: "Vesper",
+    type: "website",
+    locale: "en_US",
+    url: "https://vesper-wheat.vercel.app",
+  },
+  twitter: {
+    card: "summary",
+    title: "Vesper — AI Agent Workforce OS",
+    description: "Deploy, manage, and orchestrate autonomous AI agents across your entire business.",
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Vesper AI",
+    title: "Vesper",
   },
+  keywords: ["AI agents", "workforce automation", "agent management", "AI operating system", "business intelligence", "autonomous agents"],
 };
 
 export default function RootLayout({
