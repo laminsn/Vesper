@@ -69,6 +69,24 @@ export const ORG_CB: OrgDefinition = {
   color: "#10b981",
 };
 
+export const ORG_MB: OrgDefinition = {
+  id: "00000000-0000-4000-a000-000000000008",
+  name: "Medical Baise",
+  slug: "mb",
+  industry: "healthcare",
+  hipaaMode: true,
+  color: "#3b82f6",
+};
+
+export const ORG_LB: OrgDefinition = {
+  id: "00000000-0000-4000-a000-000000000009",
+  name: "Legal Baise",
+  slug: "lb",
+  industry: "other",
+  hipaaMode: false,
+  color: "#8b5cf6",
+};
+
 export const ALL_ORGS: readonly OrgDefinition[] = [
   ORG_HHCC,
   ORG_FNF,
@@ -76,4 +94,6 @@ export const ALL_ORGS: readonly OrgDefinition[] = [
   ORG_HAA,
   ORG_RAM,
   ORG_CB,
+  ORG_MB,
+  ORG_LB,
 ] as const;

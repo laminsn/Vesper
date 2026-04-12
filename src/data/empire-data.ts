@@ -27,6 +27,8 @@ const AGENT_MAP: Readonly<Record<string, readonly Agent[]>> = {
   "00000000-0000-4000-a000-000000000004": agentsHaa,
   "00000000-0000-4000-a000-000000000005": agentsRam,
   "00000000-0000-4000-a000-000000000007": agentsCb,
+  "00000000-0000-4000-a000-000000000008": agentsCb, // Medical Baise — shared Baise Group agents
+  "00000000-0000-4000-a000-000000000009": agentsCb, // Legal Baise — shared Baise Group agents
 };
 
 export function getStaticAgents(orgId: string | null): readonly Agent[] {
