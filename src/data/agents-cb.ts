@@ -24,18 +24,18 @@ function makeAgent(
     avatar_url: null,
     soul_file_path: `souls/${slug}.soul.md`,
     config: {},
-    created_at: "2026-03-06T00:00:00Z",
+    created_at: "2026-04-10T00:00:00Z",
     updated_at: new Date().toISOString(),
   };
 }
 
 export const agentsCb: Agent[] = [
   // Empire Leadership (shared orchestrators)
-  makeAgent("leona", "Leona", "Chief of Staff", "empire-leadership", "orchestrator", null, "active"),
-  makeAgent("nova", "Nova", "Marketing Intelligence", "empire-leadership", "orchestrator", null, "active"),
-  makeAgent("marcus", "Marcus", "Revenue Intelligence", "empire-leadership", "orchestrator", null, "active"),
-  makeAgent("sage", "Sage", "Knowledge & Research", "empire-leadership", "orchestrator", null, "active"),
-  makeAgent("atlas", "Atlas", "Operations Intelligence", "empire-leadership", "orchestrator", null, "active"),
+  makeAgent("leona", "Leona", "Executive Assistant", "empire-leadership", "orchestrator", null, "active"),
+  makeAgent("nova", "Nova", "Tech Lead", "empire-leadership", "orchestrator", null, "active"),
+  makeAgent("marcus", "Marcus", "GHL / CRM Lead", "empire-leadership", "orchestrator", null, "active"),
+  makeAgent("sage", "Sage", "Documentation Lead", "empire-leadership", "orchestrator", null, "active"),
+  makeAgent("atlas", "Atlas", "Analytics Lead", "empire-leadership", "orchestrator", null, "active"),
 
   // Executive
   makeAgent("valentina-cruz", "Valentina Cruz", "Chief Executive Officer", "executive", "orchestrator", null, "active"),
@@ -53,58 +53,58 @@ export const agentsCb: Agent[] = [
   makeAgent("diego-barbosa", "Diego Barbosa", "Product Director", "product", "director", "valentina-cruz", "active"),
 
   // Marketing specialists (parent: diana-sousa)
-  makeAgent("iris-campos", "Iris Campos", "Market Research Specialist", "marketing", "specialist", "diana-sousa", "idle"),
-  makeAgent("rex-teixeira", "Rex Teixeira", "Paid Ads Specialist", "marketing", "specialist", "diana-sousa", "executing"),
-  makeAgent("finn-azevedo", "Finn Azevedo", "SEO Specialist", "marketing", "specialist", "diana-sousa", "idle"),
-  makeAgent("lyra-mendonca", "Lyra Mendonca", "Email Marketing Specialist", "marketing", "specialist", "diana-sousa", "active"),
-  makeAgent("summit-faria", "Summit Faria", "Event Coordinator", "marketing", "specialist", "diana-sousa", "idle"),
+  makeAgent("iris-campos", "Iris Campos", "Market Research Specialist", "marketing", "specialist", "diana-sousa"),
+  makeAgent("rex-teixeira", "Rex Teixeira", "Paid Ads Specialist", "marketing", "specialist", "diana-sousa"),
+  makeAgent("finn-azevedo", "Finn Azevedo", "SEO & Local Search Specialist", "marketing", "specialist", "diana-sousa"),
+  makeAgent("lyra-mendonca", "Lyra Mendonça", "Email Marketing Specialist", "marketing", "specialist", "diana-sousa"),
+  makeAgent("summit-faria", "Summit Faria", "Partnerships Coordinator", "marketing", "specialist", "diana-sousa"),
 
   // Content specialists (parent: jordan-pinto)
-  makeAgent("blaze-correia", "Blaze Correia", "Short-Form Video Specialist", "content", "specialist", "jordan-pinto", "active"),
-  makeAgent("wren-batista", "Wren Batista", "Blog & Written Content Specialist", "content", "specialist", "jordan-pinto", "idle"),
-  makeAgent("lux-oliveira", "Lux Oliveira", "Graphic Designer", "content", "specialist", "jordan-pinto", "active"),
-  makeAgent("cleo-marques", "Cleo Marques", "Social Media Manager", "content", "specialist", "jordan-pinto", "active"),
-  makeAgent("quill-tavares", "Quill Tavares", "Community Manager", "content", "specialist", "jordan-pinto", "idle"),
+  makeAgent("blaze-correia", "Blaze Correia", "Short-Form Video Specialist", "content", "specialist", "jordan-pinto"),
+  makeAgent("wren-batista", "Wren Batista", "Blog & Written Content", "content", "specialist", "jordan-pinto"),
+  makeAgent("lux-oliveira", "Lux Oliveira", "Graphic Designer", "content", "specialist", "jordan-pinto"),
+  makeAgent("cleo-marques", "Cleo Marques", "Social Media Manager", "content", "specialist", "jordan-pinto"),
+  makeAgent("quill-tavares", "Quill Tavares", "Community Manager (PT/EN)", "content", "specialist", "jordan-pinto"),
 
-  // Sales specialists (parent: victor-drummond)
-  makeAgent("cassidy-rocha", "Cassidy Rocha", "Account Executive — Homeowners", "sales-growth", "specialist", "victor-drummond", "active"),
-  makeAgent("drake-nunes", "Drake Nunes", "Account Executive — Contractors", "sales-growth", "specialist", "victor-drummond", "active"),
-  makeAgent("vera-santana", "Vera Santana", "Inside Sales Rep", "sales-growth", "specialist", "victor-drummond", "idle"),
-  makeAgent("trace-cavalcanti", "Trace Cavalcanti", "Proposal & Pitch Specialist", "sales-growth", "specialist", "victor-drummond", "idle"),
+  // Sales & Growth specialists (parent: victor-drummond)
+  makeAgent("cassidy-rocha", "Cassidy Rocha", "Sales Copywriter", "sales-growth", "specialist", "victor-drummond"),
+  makeAgent("drake-nunes", "Drake Nunes", "Contractor Acquisition Rep", "sales-growth", "specialist", "victor-drummond"),
+  makeAgent("vera-santana", "Vera Santana", "Homeowner Growth Specialist", "sales-growth", "specialist", "victor-drummond"),
+  makeAgent("trace-cavalcanti", "Trace Cavalcanti", "CRM Admin", "sales-growth", "specialist", "victor-drummond"),
 
-  // Contractor Ops specialists (parent: rook-ferreira)
-  makeAgent("maven-prado", "Maven Prado", "Job Dispatch Coordinator", "contractor-operations", "specialist", "rook-ferreira", "active"),
-  makeAgent("anchor-lima", "Anchor Lima", "Contractor Vetting Specialist", "contractor-operations", "specialist", "rook-ferreira", "idle"),
-  makeAgent("scout-vasconcelos", "Scout Vasconcelos", "Field Quality Inspector", "contractor-operations", "specialist", "rook-ferreira", "idle"),
-  makeAgent("grid-moura", "Grid Moura", "Platform & Tools Manager", "contractor-operations", "specialist", "rook-ferreira", "idle"),
+  // Contractor Operations specialists (parent: rook-ferreira)
+  makeAgent("maven-prado", "Maven Prado", "Contractor Vetting Specialist", "contractor-operations", "specialist", "rook-ferreira"),
+  makeAgent("anchor-lima", "Anchor Lima", "Quality Assurance Agent", "contractor-operations", "specialist", "rook-ferreira"),
+  makeAgent("scout-vasconcelos", "Scout Vasconcelos", "Contractor Recruiter", "contractor-operations", "specialist", "rook-ferreira"),
+  makeAgent("grid-moura", "Grid Moura", "Platform Manager", "contractor-operations", "specialist", "rook-ferreira"),
 
-  // Homeowner CX specialists (parent: celeste-duarte)
-  makeAgent("ana-ferreira", "Ana Ferreira", "Homeowner Onboarding Specialist", "homeowner-experience", "specialist", "celeste-duarte", "active"),
-  makeAgent("haven-ribeiro", "Haven Ribeiro", "Support & Escalation Manager", "homeowner-experience", "specialist", "celeste-duarte", "idle"),
-  makeAgent("mirror-gomes", "Mirror Gomes", "Review & Reputation Specialist", "homeowner-experience", "specialist", "celeste-duarte", "idle"),
-  makeAgent("kin-aragao", "Kin Aragao", "Retention & Renewal Specialist", "homeowner-experience", "specialist", "celeste-duarte", "idle"),
+  // Homeowner Experience specialists (parent: celeste-duarte)
+  makeAgent("ana-ferreira", "Ana Ferreira", "Homeowner Success Manager", "homeowner-experience", "specialist", "celeste-duarte"),
+  makeAgent("haven-ribeiro", "Haven Ribeiro", "Booking Concierge", "homeowner-experience", "specialist", "celeste-duarte"),
+  makeAgent("mirror-gomes", "Mirror Gomes", "Reviews & Reputation Specialist", "homeowner-experience", "specialist", "celeste-duarte"),
+  makeAgent("kin-aragao", "Kin Aragão", "Referral Program Coordinator", "homeowner-experience", "specialist", "celeste-duarte"),
 
   // Contractor Success specialists (parent: lucas-oliveira)
-  makeAgent("coach-souza", "Coach Souza", "Contractor Onboarding Coach", "contractor-success", "specialist", "lucas-oliveira", "active"),
-  makeAgent("dash-pereira", "Dash Pereira", "Performance & Ratings Specialist", "contractor-success", "specialist", "lucas-oliveira", "idle"),
-  makeAgent("rue-monteiro", "Rue Monteiro", "Contractor Communications Manager", "contractor-success", "specialist", "lucas-oliveira", "idle"),
-  makeAgent("pulse-barros", "Pulse Barros", "Contractor Feedback Analyst", "contractor-success", "specialist", "lucas-oliveira", "idle"),
+  makeAgent("coach-souza", "Coach Souza", "Performance Coaching Agent", "contractor-success", "specialist", "lucas-oliveira"),
+  makeAgent("dash-pereira", "Dash Pereira", "Payout & Payments Support", "contractor-success", "specialist", "lucas-oliveira"),
+  makeAgent("rue-monteiro", "Rue Monteiro", "Contractor Community Manager", "contractor-success", "specialist", "lucas-oliveira"),
+  makeAgent("pulse-barros", "Pulse Barros", "Engagement Agent", "contractor-success", "specialist", "lucas-oliveira"),
 
   // Trust & Safety specialists (parent: fernanda-rocha)
-  makeAgent("sentinel-cruz", "Sentinel Cruz", "Fraud & Abuse Investigator", "trust-safety", "specialist", "fernanda-rocha", "active"),
-  makeAgent("arbiter-lopes", "Arbiter Lopes", "Dispute Resolution Specialist", "trust-safety", "specialist", "fernanda-rocha", "idle"),
-  makeAgent("warden-freitas", "Warden Freitas", "Policy & Compliance Officer", "trust-safety", "specialist", "fernanda-rocha", "idle"),
+  makeAgent("sentinel-cruz", "Sentinel Cruz", "Fraud Detection Agent", "trust-safety", "specialist", "fernanda-rocha"),
+  makeAgent("arbiter-lopes", "Arbiter Lopes", "Dispute Resolution Specialist", "trust-safety", "specialist", "fernanda-rocha"),
+  makeAgent("warden-freitas", "Warden Freitas", "Risk Management Analyst", "trust-safety", "specialist", "fernanda-rocha"),
 
   // Finance specialists (parent: isabela-mendes)
-  makeAgent("thiago-cardoso", "Thiago Cardoso", "Bookkeeper & Reconciliation", "finance", "specialist", "isabela-mendes", "idle"),
-  makeAgent("gauge-albuquerque", "Gauge Albuquerque", "Financial Reporting & Profitability", "finance", "specialist", "isabela-mendes", "idle"),
+  makeAgent("thiago-cardoso", "Thiago Cardoso", "Payments & PIX Specialist", "finance", "specialist", "isabela-mendes"),
+  makeAgent("gauge-albuquerque", "Gauge Albuquerque", "Pricing Analyst", "finance", "specialist", "isabela-mendes"),
 
-  // Legal specialists (parent: carolina-vieira)
-  makeAgent("parity-soares", "Parity Soares", "Contract & Legal Review Specialist", "legal-compliance", "specialist", "carolina-vieira", "idle"),
-  makeAgent("scribe-leal", "Scribe Leal", "Regulatory Compliance Officer", "legal-compliance", "specialist", "carolina-vieira", "idle"),
+  // Legal & Compliance specialists (parent: carolina-vieira)
+  makeAgent("parity-soares", "Parity Soares", "LGPD & Data Privacy Officer", "legal-compliance", "specialist", "carolina-vieira"),
+  makeAgent("scribe-leal", "Scribe Leal", "Contracts & Terms Specialist", "legal-compliance", "specialist", "carolina-vieira"),
 
   // Product specialists (parent: diego-barbosa)
-  makeAgent("milo-queiroz", "Milo Queiroz", "Product Manager", "product", "specialist", "diego-barbosa", "active"),
-  makeAgent("nora-campos", "Nora Campos", "UX Designer", "product", "specialist", "diego-barbosa", "idle"),
-  makeAgent("knox-assis", "Knox Assis", "QA & Testing Specialist", "product", "specialist", "diego-barbosa", "idle"),
+  makeAgent("milo-queiroz", "Milo Queiroz", "Feature Development Specialist", "product", "specialist", "diego-barbosa"),
+  makeAgent("nora-campos", "Nora Campos", "UX Research Agent", "product", "specialist", "diego-barbosa"),
+  makeAgent("knox-assis", "Knox Assis", "Platform & Integration Manager", "product", "specialist", "diego-barbosa"),
 ];
