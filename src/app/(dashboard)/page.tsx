@@ -2,8 +2,14 @@
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+const KnowledgeGraph = dynamic(
+  () => import("@/components/knowledge-graph").then((m) => m.KnowledgeGraph),
+  { ssr: false }
+);
 import { Bot, Activity, Building2, BookOpen, Zap, Shield } from "lucide-react";
 import { useAgents } from "@/hooks/use-agents";
 import { useDepartments } from "@/hooks/use-departments";
@@ -434,6 +440,11 @@ export default function CommandCenterPage() {
               </div>
             </div>
           </HudFrame>
+        </motion.div>
+
+        {/* ═══ Section 2.5: Knowledge Graph ═══ */}
+        <motion.div variants={fadeUp}>
+          <KnowledgeGraph />
         </motion.div>
 
         {/* ═══ Section 3: Performance Analytics ═══ */}
