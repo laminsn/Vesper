@@ -2,8 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Rocket, BookOpen } from "lucide-react";
+import { Search, Rocket, BookOpen, Loader2, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import { GlowCard } from "@/components/jarvis";
+import { useOrgStore } from "@/stores/org-store";
+import { createClient } from "@/lib/supabase/client";
 import {
   agentTemplates,
   templateCategories,
@@ -53,8 +56,13 @@ const fadeUp = {
 
 /* ───── template card ───── */
 
-function TemplateCard({ template }: { readonly template: AgentTemplate }) {
+function TemplateCard({ template, onDeploy, deploying }: {
+  readonly template: AgentTemplate;
+  readonly onDeploy: (t: AgentTemplate) => void;
+  readonly deploying: string | null;
+}) {
   const catLabel = templateCategories.find((c) => c.id === template.category)?.name ?? template.category;
+  const isDeploying = deploying === template.id;
 
   return (
     <GlowCard className="p-5 space-y-3" hover>
@@ -109,10 +117,16 @@ function TemplateCard({ template }: { readonly template: AgentTemplate }) {
           {template.defaultZone}
         </span>
         <button
-          className="flex items-center gap-1.5 rounded-md border border-[var(--jarvis-accent)] bg-transparent px-3 py-1.5 text-xs font-medium text-[var(--jarvis-accent)] transition-colors hover:bg-[var(--jarvis-accent)]/10"
+          onClick={() => onDeploy(template)}
+          disabled={isDeploying}
+          className="flex items-center gap-1.5 rounded-md border border-[var(--jarvis-accent)] bg-transparent px-3 py-1.5 text-xs font-medium text-[var(--jarvis-accent)] transition-colors hover:bg-[var(--jarvis-accent)]/10 disabled:opacity-50"
         >
-          <Rocket className="h-3 w-3" />
-          Deploy Agent
+          {isDeploying ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Rocket className="h-3 w-3" />
+          )}
+          {isDeploying ? "Deploying..." : "Deploy Agent"}
         </button>
       </div>
     </GlowCard>
@@ -158,6 +172,48 @@ export default function TrainingPage() {
   const [activeTab, setActiveTab] = useState<Tab>("templates");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [deploying, setDeploying] = useState<string | null>(null);
+  const orgId = useOrgStore((s) => s.currentOrgId);
+
+  const handleDeploy = async (template: AgentTemplate) => {
+    if (!orgId) {
+      toast.error("Select an organization first");
+      return;
+    }
+    setDeploying(template.id);
+    try {
+      const supabase = createClient();
+      const slug = `${template.id}-${Date.now().toString(36)}`;
+      const { error } = await supabase.from("agents").insert({
+        slug,
+        name: template.name,
+        role: template.description,
+        department: template.category,
+        tier: template.tier === "enterprise" ? "orchestrator" : template.tier === "advanced" ? "director" : "specialist",
+        status: "active",
+        organization_id: orgId,
+        soul_file_path: `templates/${template.id}.soul.md`,
+        config: {
+          model: template.defaultModel,
+          zone: template.defaultZone,
+          skills: template.skills,
+          capabilities: template.capabilities,
+          kpis: template.suggestedKpis,
+          deployed_from_template: template.id,
+        },
+      });
+      if (error) throw error;
+      toast.success(`${template.name} deployed successfully`, {
+        description: `Agent is now active in your organization`,
+      });
+    } catch (err) {
+      toast.error("Failed to deploy agent", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setDeploying(null);
+    }
+  };
 
   const filteredTemplates = useMemo(() => {
     const lower = searchQuery.toLowerCase();
@@ -278,7 +334,7 @@ export default function TrainingPage() {
         >
           {filteredTemplates.map((t) => (
             <motion.div key={t.id} variants={fadeUp}>
-              <TemplateCard template={t} />
+              <TemplateCard template={t} onDeploy={handleDeploy} deploying={deploying} />
             </motion.div>
           ))}
         </motion.div>
