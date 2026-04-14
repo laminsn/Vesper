@@ -348,6 +348,22 @@ function getDefaultFlowConfigs(): N8nFlowConfig[] {
       createdAt: now,
       updatedAt: now,
     },
+    {
+      id: "n8n-directive-executor",
+      name: "Directive Executor",
+      webhookUrl: `${getN8nBaseUrl().replace(/\/api\/v1$/, "").replace(/\/$/, "")}/webhook/vesper-directive`,
+      description: "Generic directive execution — receives agent directives, processes them, and calls back to Vesper with results.",
+      agentZone: "operations",
+      allowedAgentIds: [],
+      executionMode: "edge",
+      requiresPhiScan: true,
+      requiresAuditLog: true,
+      isActive: true,
+      timeout: 30000,
+      retryPolicy: { maxRetries: 2, backoffMs: 2000 },
+      createdAt: now,
+      updatedAt: now,
+    },
   ];
 }
 
@@ -439,8 +455,8 @@ export async function processGatewayRequest(
     };
   }
 
-  // 2. Validate agent authorization
-  if (!flow.allowedAgentIds.includes(request.agentId)) {
+  // 2. Validate agent authorization (empty allowedAgentIds = allow all agents)
+  if (flow.allowedAgentIds.length > 0 && !flow.allowedAgentIds.includes(request.agentId)) {
     const emptyPhiResult: PhiScanResult = {
       containsPhi: false,
       riskLevel: "none",

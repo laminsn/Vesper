@@ -234,7 +234,7 @@ export default function CommandStationPage() {
 
     try {
       if (messageType === "directive") {
-        await createDirective.mutateAsync({
+        const directive = await createDirective.mutateAsync({
           target_agent_id: selectedAgent.id,
           target_department: selectedAgent.department,
           instruction: messageInput.trim(),
@@ -242,6 +242,34 @@ export default function CommandStationPage() {
           status: "pending",
         });
         toast.success(`Directive sent to ${selectedAgent.name}`);
+
+        // Trigger n8n execution asynchronously (don't block the UI)
+        fetch("/api/n8n/execute", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-vesper-webhook-secret": "vesper-dev-secret",
+          },
+          body: JSON.stringify({
+            flowId: "n8n-directive-executor",
+            agentSlug: selectedAgent.slug,
+            agentName: selectedAgent.name,
+            agentZone: "operations",
+            payload: {
+              directive_id: directive.id,
+              directive: messageInput.trim(),
+              agent_slug: selectedAgent.slug,
+              priority,
+              department: selectedAgent.department,
+            },
+          }),
+        }).then(async (res) => {
+          if (res.ok) {
+            toast.success(`${selectedAgent.name} is executing the directive`);
+          }
+        }).catch(() => {
+          // Non-blocking — directive is saved even if n8n fails
+        });
       } else {
         await createComm.mutateAsync({
           to_agent_id: selectedAgent.id,
